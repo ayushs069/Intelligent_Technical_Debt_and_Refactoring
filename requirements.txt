@@ -3,3 +3,5 @@ ruff
 pylint
 vulture
 pytest
+gitpython
+pytest-cov
