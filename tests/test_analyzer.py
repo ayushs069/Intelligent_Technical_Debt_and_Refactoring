@@ -13,7 +13,7 @@ def test_full_pipeline(sample_repo_str, tmp_path):
     output_file = str(tmp_path / "output" / "debt_dataset.json")
 
     # Run the full pipeline
-    issues = run_all(sample_repo_str)
+    issues, repo_name = run_all(sample_repo_str)
 
     # Should find some issues in the deliberately messy code
     assert len(issues) >= 1, f"Expected issues but got {len(issues)}"
@@ -31,7 +31,7 @@ def test_full_pipeline(sample_repo_str, tmp_path):
 
     # Check schema of first issue
     required_keys = {
-        "file", "function", "line", "issue_type", "tool",
+        "repo", "file", "function", "line", "issue_type", "tool",
         "severity", "complexity", "maintainability_index",
         "loc", "message", "static_score",
     }
@@ -46,7 +46,7 @@ def test_full_pipeline(sample_repo_str, tmp_path):
 
 def test_multiple_tools_represented(sample_repo_str):
     """The sample repo should produce findings from multiple tools."""
-    issues = run_all(sample_repo_str)
+    issues, _ = run_all(sample_repo_str)
     tools = {i["tool"] for i in issues}
     # At minimum, ruff and vulture should find something in the sample
     assert len(tools) >= 2, f"Expected findings from ≥2 tools, got {tools}"

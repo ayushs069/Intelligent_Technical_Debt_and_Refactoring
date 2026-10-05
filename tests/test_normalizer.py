@@ -105,7 +105,7 @@ class TestNormalize:
         }]
         result = normalize(raw)
         expected_keys = {
-            "file", "function", "line", "issue_type", "tool",
+            "repo", "file", "function", "line", "issue_type", "tool",
             "severity", "complexity", "maintainability_index",
             "loc", "message", "static_score",
         }

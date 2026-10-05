@@ -41,14 +41,15 @@ def _compute_static_score(issue: dict) -> float:
     return round(cx + mi_score + sev, 2)
 
 
-def normalize(raw_issues: list[dict]) -> list[dict]:
+def normalize(raw_issues: list[dict], repo_name: str = "") -> list[dict]:
     """
     Convert a list of raw issue dicts (from any analyzer) into
-    the unified schema with ``static_score``.
+    the unified schema with ``static_score`` and ``repo``.
     """
     normalised: list[dict] = []
     for raw in raw_issues:
         issue = {
+            "repo": repo_name or raw.get("repo", ""),
             "file": raw.get("file", ""),
             "function": raw.get("function", ""),
             "line": raw.get("line", 0),
