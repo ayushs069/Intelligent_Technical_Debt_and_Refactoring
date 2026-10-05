@@ -5,3 +5,7 @@ vulture
 pytest
 gitpython
 pytest-cov
+chromadb
+sentence-transformers
+langchain
+langchain-community
