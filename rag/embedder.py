@@ -7,32 +7,39 @@ from __future__ import annotations
 
 from typing import Any
 
+from sentence_transformers import SentenceTransformer
+
 
 def format_issue_document(issue: dict[str, Any]) -> str:
     """
     Format an enriched issue dictionary into a structured, human-readable text document
     suitable for vector embedding and retrieval.
     """
+
     repo = issue.get("repo", "unknown_repo")
     file_path = issue.get("file", "unknown_file")
     func_name = issue.get("function", "") or "<module_level>"
     line = issue.get("line", 0)
     issue_type = issue.get("issue_type", "unknown")
     tool = issue.get("tool", "unknown")
-    severity = issue.get("severity", "LOW")
-    message = issue.get("message", "")
+    severity = issue.get("severity", "LOW") or "LOW"
+    message = issue.get("message", "") or ""
 
-    complexity = issue.get("complexity", 0)
-    mi = issue.get("maintainability_index", 100.0)
-    loc = issue.get("loc", 0)
-    static_score = issue.get("static_score", 0.0)
+    complexity = issue.get("complexity") or 0
+    mi_val = issue.get("maintainability_index")
+    mi = float(mi_val) if mi_val is not None else 100.0
+    loc = issue.get("loc") or 0
+    score_val = issue.get("static_score")
+    static_score = float(score_val) if score_val is not None else 0.0
 
-    callers = issue.get("callers", 0)
-    recent_commits = issue.get("recent_commits", 0)
-    defect_commits = issue.get("defect_commits", 0)
-    commit_authors = issue.get("commit_authors", 0)
-    last_modified_days = issue.get("last_modified_days", -1)
-    test_coverage = issue.get("test_coverage", 0.0)
+    callers = issue.get("callers") or 0
+    recent_commits = issue.get("recent_commits") or 0
+    defect_commits = issue.get("defect_commits") or 0
+    commit_authors = issue.get("commit_authors") or 0
+    last_mod_val = issue.get("last_modified_days")
+    last_modified_days = int(last_mod_val) if last_mod_val is not None else -1
+    cov_val = issue.get("test_coverage")
+    test_coverage = float(cov_val) if cov_val is not None else 0.0
 
     doc_text = (
         f"Repository: {repo}\n"
@@ -59,9 +66,9 @@ class IssueEmbedder:
     @property
     def model(self):
         if self._model is None:
-            from sentence_transformers import SentenceTransformer
             self._model = SentenceTransformer(self.model_name)
         return self._model
+
 
     def encode_text(self, text: str) -> list[float]:
         """Generate embedding vector for a single text chunk."""
@@ -70,5 +77,8 @@ class IssueEmbedder:
 
     def encode_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embedding vectors for a batch of text chunks."""
+        if not texts:
+            return []
         embeddings = self.model.encode(texts, convert_to_numpy=True)
         return [emb.tolist() for emb in embeddings]
+
