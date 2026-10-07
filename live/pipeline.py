@@ -319,8 +319,9 @@ class LivePipeline:
             fn["coverage_known"] = False
         churn = sorted(((f, c["recent_commits"], c["defect_commits"]) for f, c in file_ctx.items()
                         if f.endswith(".py")), key=lambda t: -t[1])[:8]
-        hot = sorted(self.state["functions"], key=lambda f: (-f["func_fix_commits"], -f["func_commits"]))[:8]
-        called = sorted(self.state["functions"], key=lambda f: -f["callers"])[:6]
+        real = [f for f in self.state["functions"] if not _is_overload_stub(_read_source(f))]
+        hot = sorted(real, key=lambda f: (-f["func_fix_commits"], -f["func_commits"]))[:8]
+        called = sorted(real, key=lambda f: -f["callers"])[:6]
         return {"files_with_history": len(file_ctx),
                 "function_changes": sum(h["commits"] for h in history.values()),
                 "fix_commits_mapped": sum(h["fix_commits"] for h in history.values()),
