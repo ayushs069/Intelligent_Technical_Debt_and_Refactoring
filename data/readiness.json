@@ -1,0 +1,41 @@
+{
+  "generated": "2026-10-07T17:20:52.148537+00:00",
+  "research_complete": false,
+  "checks": [
+    {
+      "check": "Dataset integrity",
+      "passed": true,
+      "detail": "84 candidate functions, 84 ground-truth labels"
+    },
+    {
+      "check": "Snapshot source available",
+      "passed": true,
+      "detail": "84/84 readable"
+    },
+    {
+      "check": "LLM + RAG experiment",
+      "passed": false,
+      "detail": "0/84 successful rankings"
+    },
+    {
+      "check": "Matched no-context experiment",
+      "passed": false,
+      "detail": "0/84 successful rankings"
+    },
+    {
+      "check": "Independent human evaluation",
+      "passed": false,
+      "detail": "0 complete reviewers; requires at least two real independent reviewers"
+    },
+    {
+      "check": "Measured refactoring experiment",
+      "passed": false,
+      "detail": "0/0 proposals passed the gate"
+    },
+    {
+      "check": "API credential configured",
+      "passed": true,
+      "detail": "Presence only; account balance and access are not verified by this audit"
+    }
+  ]
+}

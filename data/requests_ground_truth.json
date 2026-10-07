@@ -1,0 +1,524 @@
+{
+  "requests/models.py::RequestEncodingMixin._encode_files": {
+    "future_commits": 4,
+    "future_fix_commits": 1,
+    "future_defect": true,
+    "fix_shas": [
+      "6f205ff4"
+    ]
+  },
+  "requests/models.py::PreparedRequest.prepare_body": {
+    "future_commits": 2,
+    "future_fix_commits": 1,
+    "future_defect": true,
+    "fix_shas": [
+      "6404f345"
+    ]
+  },
+  "requests/models.py::PreparedRequest.prepare_url": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::should_bypass_proxies": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::super_len": {
+    "future_commits": 2,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/auth.py::HTTPDigestAuth.build_digest_header": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/adapters.py::HTTPAdapter.send": {
+    "future_commits": 3,
+    "future_fix_commits": 2,
+    "future_defect": true,
+    "fix_shas": [
+      "a94e9b53",
+      "c0813a2d"
+    ]
+  },
+  "requests/utils.py::get_netrc_auth": {
+    "future_commits": 3,
+    "future_fix_commits": 2,
+    "future_defect": true,
+    "fix_shas": [
+      "47914226",
+      "5b4b64c3"
+    ]
+  },
+  "requests/sessions.py::SessionRedirectMixin.resolve_redirects": {
+    "future_commits": 2,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::RequestEncodingMixin._encode_params": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::guess_json_utf": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/adapters.py::HTTPAdapter.cert_verify": {
+    "future_commits": 3,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::Session.send": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.iter_lines": {
+    "future_commits": 2,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::proxy_bypass_registry": {
+    "future_commits": 2,
+    "future_fix_commits": 2,
+    "future_defect": true,
+    "fix_shas": [
+      "13d892bd",
+      "1604e20f"
+    ]
+  },
+  "requests/models.py::Response.json": {
+    "future_commits": 3,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.iter_content.generate": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::extract_zipped_paths": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.iter_content": {
+    "future_commits": 2,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Request.__init__": {
+    "future_commits": 1,
+    "future_fix_commits": 1,
+    "future_defect": true,
+    "fix_shas": [
+      "e511bc72"
+    ]
+  },
+  "requests/sessions.py::SessionRedirectMixin.should_strip_auth": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.raise_for_status": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::PreparedRequest.prepare_auth": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.content": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::RequestHooksMixin.register_hook": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::RequestsCookieJar._find_no_duplicates": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::parse_header_links": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::is_valid_cidr": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::unquote_unreserved": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::Session.merge_environment_settings": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::merge_setting": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::remove_cookie_by_name": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::prepend_scheme_if_needed": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::SessionRedirectMixin.rebuild_method": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::RequestsCookieJar._find": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::cookiejar_from_dict": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::to_key_val_list": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::rewind_body": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.__getstate__": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::Session.prepare_request": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::SessionRedirectMixin.rebuild_proxies": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::merge_cookies": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::RequestsCookieJar.get_dict": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::from_key_val_list": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::PreparedRequest.copy": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::PreparedRequest._get_idna_encoded_host": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.__setstate__": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.is_permanent_redirect": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::morsel_to_cookie": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::urldefragauth": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/utils.py::proxy_bypass": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::PreparedRequest.prepare": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.__bool__": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/models.py::Response.__nonzero__": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::Session.request": {
+    "future_commits": 3,
+    "future_fix_commits": 2,
+    "future_defect": true,
+    "fix_shas": [
+      "e511bc72",
+      "b684dcb9"
+    ]
+  },
+  "requests/utils.py::get_encodings_from_content": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/__init__.py::check_compatibility": {
+    "future_commits": 4,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/auth.py::HTTPDigestAuth.handle_401": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/auth.py::_basic_auth_str": {
+    "future_commits": 2,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::extract_cookies_to_jar": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::RequestsCookieJar.update": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/help.py::info": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/help.py::_implementation": {
+    "future_commits": 2,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/cookies.py::RequestsCookieJar.get": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::Session.__init__": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::Session.patch": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/sessions.py::Session.put": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/auth.py::HTTPDigestAuth.handle_redirect": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/auth.py::HTTPBasicAuth.__eq__": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/auth.py::HTTPDigestAuth.__eq__": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/adapters.py::BaseAdapter.send": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/adapters.py::HTTPAdapter.add_headers": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/adapters.py::BaseAdapter.__init__": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/status_codes.py::_init": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/__init__.py::_check_cryptography": {
+    "future_commits": 1,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/hooks.py::dispatch_hook": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/status_codes.py::_init.doc": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/api.py::head": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/api.py::patch": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/api.py::post": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/api.py::put": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/api.py::get": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/api.py::delete": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  },
+  "requests/api.py::options": {
+    "future_commits": 0,
+    "future_fix_commits": 0,
+    "future_defect": false,
+    "fix_shas": []
+  }
+}

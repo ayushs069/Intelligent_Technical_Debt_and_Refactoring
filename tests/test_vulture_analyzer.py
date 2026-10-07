@@ -31,7 +31,6 @@ def test_issue_has_required_fields(sample_repo_str):
 
 def test_line_regex_parsing():
     """Test the regex against a synthetic vulture output line."""
-    import re
     line = "app/views.py:42: unused function 'old_handler' (90% confidence)"
     m = vulture_analyzer._LINE_RE.match(line)
     assert m is not None

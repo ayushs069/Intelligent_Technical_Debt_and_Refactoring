@@ -73,15 +73,19 @@ def enrich(
     repo_path: str,
     output_path: str,
     lookback_days: int = 90,
+    as_of=None,
 ) -> str:
     """
     Load *phase1_path* (Phase 1 JSON dataset), run all enrichers against
     *repo_path*, merge results, and save to *output_path*.
 
+    *as_of* (timezone-aware datetime) restricts git history to commits before
+    that moment — see ``git_enricher.build_file_context``.
+
     Returns the absolute path of the written file.
     """
     print(f"\n{'='*60}")
-    print(f"  Technical Debt Enricher — Phase 2")
+    print("  Technical Debt Enricher — Phase 2")
     print(f"  Repository : {os.path.basename(os.path.abspath(repo_path))}")
     print(f"  Input      : {phase1_path}")
     print(f"  Output     : {output_path}")
@@ -94,7 +98,7 @@ def enrich(
 
     # ── Run enrichers ─────────────────────────────────────────────────────
     print("\n[1/3] Running Git history enricher …")
-    git_context = build_file_context(repo_path, lookback_days=lookback_days)
+    git_context = build_file_context(repo_path, lookback_days=lookback_days, as_of=as_of)
     print(f"       Got context for {len(git_context)} file(s).")
 
     print("[2/3] Running Call-graph enricher …")

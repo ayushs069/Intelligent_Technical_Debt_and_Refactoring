@@ -1,0 +1,23 @@
+{
+  "repo": "requests",
+  "as_of": "2024-01-01T00:00:00+00:00",
+  "history_since": "2019-01-01T00:00:00+00:00",
+  "horizon": "2026-10-06T00:00:00+00:00",
+  "functions_indexed": 235,
+  "candidates": 84,
+  "phase1_issues": 500,
+  "phase1_by_tool": {
+    "radon": 53,
+    "ruff": 110,
+    "pylint": 281,
+    "vulture": 56
+  },
+  "candidates_with_future_defect": 7,
+  "candidates_with_future_change": 28,
+  "snapshot_sha": "72eccc8dd8b7c272e520f22b0256386c80864e94",
+  "snapshot_dir": "C:\\Users\\ASAD AHMAD\\Downloads\\Intelligent_Technical_Debt_and_Refactoring-main\\Intelligent_Technical_Debt_and_Refactoring-main\\targets\\requests_snapshot",
+  "git_repo": "C:\\Users\\ASAD AHMAD\\Downloads\\Intelligent_Technical_Debt_and_Refactoring-main\\Intelligent_Technical_Debt_and_Refactoring-main\\targets\\requests",
+  "source_subdir": "src/requests",
+  "tests_subdir": "tests",
+  "coverage_json": "C:\\Users\\ASAD AHMAD\\Downloads\\Intelligent_Technical_Debt_and_Refactoring-main\\Intelligent_Technical_Debt_and_Refactoring-main\\targets\\requests_snapshot\\coverage.json"
+}

@@ -1,0 +1,849 @@
+<title>Intelligent Technical Debt &amp; Refactoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky command bar with section tabs; each section is a column of panels on a
+   12-col grid; a deep-navy hero band carries the research question. Amber = project accent,
+   cobalt = the proposed LLM method, slate = static baselines. */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --sunken: #edf0f4; --ink: #0e1626; --ink-2: #2b3546;
+  --muted: #5d687a; --line: #dde2e9; --line-2: #c9d0da;
+  --hero: #0c1828; --hero-2: #13243a; --hero-ink: #eaf0f8; --hero-muted: #93a3ba; --hero-line: #22344e;
+  --accent: #e3a33b; --accent-ink: #8a5a0b; --accent-soft: #fbefd9;
+  --llm: #2f6fed; --static: #7a8597; --cx: #a9b2c0; --heur: #2a9d8f; --llmnc: #8db0f7;
+  --high: #d64545; --high-soft: #fbe3e3; --med: #d98a1c; --med-soft: #fcefd9;
+  --low: #758197; --low-soft: #e9edf2; --ok: #1f9d6b; --ok-soft: #ddf3ea;
+  --code: #f6f8fb; --add: #e1f5ea; --del: #fbe6e6;
+  --shadow: 0 1px 2px rgba(14, 22, 38, .05), 0 6px 24px rgba(14, 22, 38, .05);
+  --display: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a101b; --surface: #101827; --sunken: #0d1522; --ink: #e5ebf4; --ink-2: #c5cfdd;
+    --muted: #8b97aa; --line: #1d2839; --line-2: #2a3850;
+    --hero: #0e1a2c; --hero-2: #14243b; --hero-line: #24364f;
+    --accent: #f0b455; --accent-ink: #f0b455; --accent-soft: #2e2414;
+    --llm: #6e9bff; --static: #8f9aad; --cx: #5e6878; --heur: #3dbaa9; --llmnc: #3c5a9e;
+    --high: #f06b6b; --high-soft: #3a1c1f; --med: #f0a445; --med-soft: #33260f;
+    --low: #8b97aa; --low-soft: #1a2333; --ok: #3cc48d; --ok-soft: #12301f;
+    --code: #0d1522; --add: #10301f; --del: #3a1a1d;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .25); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a101b; --surface: #101827; --sunken: #0d1522; --ink: #e5ebf4; --ink-2: #c5cfdd;
+  --muted: #8b97aa; --line: #1d2839; --line-2: #2a3850;
+  --hero: #0e1a2c; --hero-2: #14243b; --hero-line: #24364f;
+  --accent: #f0b455; --accent-ink: #f0b455; --accent-soft: #2e2414;
+  --llm: #6e9bff; --static: #8f9aad; --cx: #5e6878; --heur: #3dbaa9; --llmnc: #3c5a9e;
+  --high: #f06b6b; --high-soft: #3a1c1f; --med: #f0a445; --med-soft: #33260f;
+  --low: #8b97aa; --low-soft: #1a2333; --ok: #3cc48d; --ok-soft: #12301f;
+  --code: #0d1522; --add: #10301f; --del: #3a1a1d;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .25); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); margin: 0; -webkit-font-smoothing: antialiased; }
+h1, h2, h3, h4 { font-family: var(--display); margin: 0; line-height: 1.12; text-wrap: balance; letter-spacing: -.012em; }
+h2 { font-size: 1.32rem; font-weight: 700; }
+h3 { font-size: 1.02rem; font-weight: 700; }
+p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: .84em; }
+.num { font-variant-numeric: tabular-nums; }
+.eyebrow { font: 600 .7rem/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.prose { max-width: 68ch; }
+a { color: var(--llm); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* ── command bar ── */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
+.bar-inner { max-width: 1320px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 12px 0;
+  display: flex; flex-direction: column; gap: 8px; }
+.brand-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mark { width: 30px; height: 30px; flex: none; }
+.brand { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.brand b { font-family: var(--display); font-weight: 800; font-size: 1.02rem; letter-spacing: -.01em; }
+.brand span { font-size: .78rem; color: var(--muted); }
+.brand-row .spacer { flex: 1; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface);
+  padding: 4px 10px; border-radius: 999px; font: 500 .76rem/1.2 var(--mono); color: var(--ink-2); white-space: nowrap; }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); display: inline-block; }
+.pill.warn i { background: var(--med); }
+.icon-btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; width: 34px; height: 34px;
+  display: grid; place-items: center; cursor: pointer; color: var(--ink-2); }
+.icon-btn:hover { border-color: var(--line-2); }
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin-bottom: -1px; }
+nav.tabs::-webkit-scrollbar { display: none; }
+nav.tabs button { border: 0; background: none; padding: 9px 12px 11px; font-weight: 600; font-size: .9rem; color: var(--muted);
+  border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+nav.tabs button:hover { color: var(--ink); }
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs .n { font: 500 .72rem var(--mono); color: var(--muted); margin-left: 5px; }
+
+main { max-width: 1320px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 26px 70px; }
+section.view { display: flex; flex-direction: column; gap: 22px; }
+.grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 22px; }
+.span-12 { grid-column: span 12; } .span-8 { grid-column: span 8; } .span-7 { grid-column: span 7; }
+.span-6 { grid-column: span 6; } .span-5 { grid-column: span 5; } .span-4 { grid-column: span 4; }
+@media (max-width: 1020px) { .span-8, .span-7, .span-6, .span-5, .span-4 { grid-column: span 12; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+  padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px 18px; flex-wrap: wrap; }
+.card-head > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sub { font-size: .84rem; color: var(--muted); }
+
+/* ── hero ── */
+.hero { background: radial-gradient(1200px 400px at 85% -10%, var(--hero-2), transparent 60%), var(--hero);
+  color: var(--hero-ink); border-radius: 16px; padding: clamp(22px, 4vw, 44px); display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 34px; position: relative; overflow: hidden; }
+@media (max-width: 920px) { .hero { grid-template-columns: 1fr; } }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: linear-gradient(var(--hero-line) 1px, transparent 1px), linear-gradient(90deg, var(--hero-line) 1px, transparent 1px);
+  background-size: 44px 44px; mask-image: linear-gradient(115deg, transparent 35%, #000 100%); -webkit-mask-image: linear-gradient(115deg, transparent 35%, #000 100%); }
+.hero > * { position: relative; z-index: 1; min-width: 0; }
+.hero .eyebrow { color: var(--accent); }
+.hero h1 { font-size: clamp(1.7rem, 3.6vw, 2.75rem); font-weight: 800; margin-top: 12px; max-width: 24ch; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero .lede { color: var(--hero-muted); margin-top: 16px; max-width: 60ch; font-size: 1rem; }
+.hero-facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.hero-facts span { border: 1px solid var(--hero-line); background: rgba(255, 255, 255, .03); color: var(--hero-ink);
+  border-radius: 999px; padding: 5px 12px; font: 500 .78rem var(--mono); }
+.ready { display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+.ready-top { display: flex; align-items: center; gap: 18px; }
+.ring { width: 112px; height: 112px; flex: none; }
+.ring text { fill: var(--hero-ink); font-family: var(--display); }
+.ready-top h3 { color: var(--hero-ink); font-size: 1.1rem; }
+.ready-top p { color: var(--hero-muted); font-size: .86rem; margin-top: 4px; }
+.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.checks li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; padding: 6px 0; border-top: 1px solid var(--hero-line); font-size: .86rem; }
+.checks li:first-child { border-top: 0; }
+.checks .t { color: var(--hero-ink); font-weight: 600; }
+.checks .d { color: var(--hero-muted); font-size: .78rem; }
+.tick { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; margin-top: 2px; }
+.tick.y { background: var(--ok); color: var(--hero); }
+.tick.n { border: 1.5px solid var(--hero-muted); color: var(--hero-muted); }
+
+/* ── KPI tiles ── */
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 16px 14px; display: flex;
+  flex-direction: column; gap: 6px; box-shadow: var(--shadow); min-width: 0; position: relative; overflow: hidden; }
+.kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--k, var(--line-2)); }
+.kpi .v { font: 700 1.9rem/1 var(--display); letter-spacing: -.02em; }
+.kpi .v small { font-size: .9rem; color: var(--muted); font-weight: 600; margin-left: 2px; }
+.kpi .s { font-size: .76rem; color: var(--muted); line-height: 1.35; }
+
+/* ── chips ── */
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font: 600 .72rem/1.6 var(--body);
+  letter-spacing: .02em; white-space: nowrap; }
+.chip.HIGH { background: var(--high-soft); color: var(--high); }
+.chip.MEDIUM { background: var(--med-soft); color: var(--med); }
+.chip.LOW { background: var(--low-soft); color: var(--low); }
+.chip.none { background: var(--sunken); color: var(--muted); }
+.chip.bug { background: var(--high-soft); color: var(--high); }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.warn { background: var(--med-soft); color: var(--med); }
+.chip.acc { background: var(--accent-soft); color: var(--accent-ink); }
+
+/* ── charts ── */
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+svg.chart text { fill: var(--muted); font: 11px var(--body); }
+svg.chart .ink { fill: var(--ink); font-weight: 600; }
+svg.chart .gl { stroke: var(--line); stroke-width: 1; }
+svg.chart .ax { stroke: var(--line-2); stroke-width: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .78rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 4px; border-radius: 2px; display: inline-block; }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--sunken); }
+.seg button { border: 0; background: none; padding: 6px 11px; font-size: .8rem; font-weight: 600; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+
+/* ── heatmap ── */
+.heat-wrap { overflow-x: auto; }
+table.heat { border-collapse: separate; border-spacing: 3px; width: 100%; min-width: 640px; font-size: .78rem; }
+table.heat th { font: 600 .66rem/1.2 var(--body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); text-align: center; padding: 4px; }
+table.heat th.fn-h { text-align: left; }
+table.heat td { text-align: center; border-radius: 4px; padding: 6px 4px; font: 500 .78rem var(--mono); color: var(--ink); }
+table.heat td.fn-c { text-align: left; background: none; padding-left: 0; white-space: nowrap; max-width: 300px; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+table.heat td.fn-c:hover { color: var(--llm); }
+
+/* ── bars list ── */
+.hbars { display: flex; flex-direction: column; gap: 10px; }
+.hb { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 54px; gap: 12px; align-items: center; font-size: .84rem; }
+.hb .lab { font-family: var(--mono); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb .track { height: 10px; background: var(--sunken); border-radius: 5px; overflow: hidden; display: flex; }
+.hb .track b { display: block; height: 100%; }
+.hb .val { text-align: right; font: 500 .8rem var(--mono); }
+
+/* ── diagram ── */
+.diagram { overflow-x: auto; }
+.diagram svg { min-width: 860px; }
+.node rect { fill: var(--surface); stroke: var(--line-2); stroke-width: 1.2; }
+.node.done rect { stroke: var(--ok); }
+.node.part rect { stroke: var(--med); }
+.node.todo rect { stroke: var(--line-2); stroke-dasharray: 4 3; }
+.node .t { fill: var(--ink); font: 700 12.5px var(--display); }
+.node .s { fill: var(--muted); font: 10.5px var(--body); }
+.node .st-done { fill: var(--ok); } .node .st-part { fill: var(--med); } .node .st-todo { fill: var(--line-2); }
+.edge { fill: none; stroke: var(--line-2); stroke-width: 1.6; }
+.edge.flow { stroke: var(--accent); stroke-dasharray: 5 6; }
+@media (prefers-reduced-motion: no-preference) { .edge.flow { animation: flow 1.6s linear infinite; } }
+@keyframes flow { to { stroke-dashoffset: -22; } }
+
+/* ── tables ── */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table.data { border-collapse: collapse; width: 100%; font-size: .85rem; }
+table.data th, table.data td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+table.data tbody tr:last-child td { border-bottom: 0; }
+table.data th { font: 600 .68rem/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--sunken); white-space: nowrap; position: sticky; top: 0; }
+table.data th.sortable { cursor: pointer; user-select: none; }
+table.data th.sortable:hover, table.data th[aria-sort] { color: var(--ink); }
+table.data td.r, table.data th.r { text-align: right; }
+table.data.click tbody tr { cursor: pointer; }
+table.data.click tbody tr:hover { background: var(--sunken); }
+table.data tbody tr.sel { background: var(--accent-soft); }
+tr.sev-HIGH td:first-child { box-shadow: inset 3px 0 0 var(--high); }
+tr.sev-MEDIUM td:first-child { box-shadow: inset 3px 0 0 var(--med); }
+tr.sev-LOW td:first-child { box-shadow: inset 3px 0 0 var(--low); }
+.fn { font-family: var(--mono); font-size: .82rem; overflow-wrap: anywhere; }
+.fn small { display: block; font-size: .72rem; color: var(--muted); }
+.mbar { height: 6px; width: 64px; border-radius: 3px; background: var(--sunken); overflow: hidden; display: inline-block; vertical-align: middle; }
+.mbar b { display: block; height: 100%; background: var(--static); }
+
+/* ── priorities split ── */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.field { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; min-width: 0; }
+.toolbar .field[type=search] { flex: 1 1 260px; }
+.check { display: inline-flex; align-items: center; gap: 7px; font-size: .85rem; color: var(--muted); cursor: pointer; }
+.split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 1060px) { .split { grid-template-columns: 1fr; } }
+.split .table-wrap { max-height: 76vh; background: var(--surface); }
+.detail { position: sticky; top: 118px; max-height: calc(100vh - 136px); overflow: auto; }
+@media (max-width: 1060px) { .detail { position: static; max-height: none; } }
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.fact { background: var(--surface); padding: 8px 10px; display: flex; flex-direction: column; gap: 1px; }
+.fact .k { font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.fact .v { font: 500 .92rem var(--mono); }
+.fp { display: flex; flex-direction: column; gap: 5px; }
+.fp-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 46px; gap: 10px; align-items: center; font-size: .78rem; }
+.fp-row .track { height: 7px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
+.fp-row .track b { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.fp-row .val { text-align: right; font: 500 .76rem var(--mono); color: var(--ink-2); }
+.nb { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+.nb li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); cursor: pointer; align-items: center; }
+.nb li:first-child { border-top: 0; }
+.nb li:hover .fn { color: var(--llm); }
+pre.code { margin: 0; background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; font: 12px/1.55 var(--mono); tab-size: 4; }
+pre.code .ln { color: var(--muted); opacity: .7; user-select: none; display: inline-block; width: 3.4em; }
+pre.code .kw { color: var(--llm); } pre.code .st { color: var(--ok); } pre.code .cm { color: var(--muted); font-style: italic; }
+pre.code .add { background: var(--add); display: block; } pre.code .del { background: var(--del); display: block; } pre.code .hunk { color: var(--llm); display: block; }
+details > summary { cursor: pointer; font-weight: 600; font-size: .88rem; }
+
+/* ── callouts ── */
+.callout { border: 1px solid var(--line); border-left: 4px solid var(--med); background: var(--surface); border-radius: 10px; padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow); }
+.callout.info { border-left-color: var(--llm); }
+.callout.ok { border-left-color: var(--ok); }
+.callout b { font-family: var(--display); }
+.empty { border: 1.5px dashed var(--line-2); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.cmd { font: 500 .8rem var(--mono); background: var(--sunken); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; overflow-x: auto; white-space: pre; }
+
+/* ── method cards ── */
+.def-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.def { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; background: var(--surface); }
+.def .tag { align-self: flex-start; }
+.kv { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.kv > div { padding: 9px 14px; border-bottom: 1px solid var(--line); font-size: .86rem; min-width: 0; overflow-wrap: anywhere; }
+.kv > div:nth-child(odd) { background: var(--sunken); color: var(--muted); font-weight: 600; font-size: .8rem; }
+.kv > div:nth-last-child(-n+2) { border-bottom: 0; }
+@media (max-width: 560px) { .kv { grid-template-columns: 1fr; } .kv > div:nth-child(odd) { border-bottom: 0; padding-bottom: 2px; } }
+
+/* ── rating ── */
+.rate-card { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; padding: 16px 0; border-top: 1px solid var(--line); }
+.rate-card:first-child { border-top: 0; padding-top: 0; }
+@media (max-width: 720px) { .rate-card { grid-template-columns: 1fr; } }
+.rate-ctl { display: flex; flex-direction: column; gap: 6px; }
+.rate-ctl output { font: 800 1.9rem/1 var(--display); color: var(--accent-ink); }
+.rate-ctl input[type=range] { width: 100%; accent-color: var(--accent); }
+.scale { display: flex; justify-content: space-between; font-size: .7rem; color: var(--muted); }
+.mini { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--muted); }
+.mini b { color: var(--ink); font: 500 .8rem var(--mono); }
+.progress { height: 6px; border-radius: 3px; background: var(--sunken); overflow: hidden; }
+.progress b { display: block; height: 100%; background: var(--accent); transition: width .2s; }
+textarea.json { width: 100%; min-height: 150px; font: 12px/1.45 var(--mono); background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; }
+.btn { background: var(--ink); color: var(--surface); border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 600; cursor: pointer; }
+.btn:hover { opacity: .9; }
+.status-line { font-size: .84rem; color: var(--muted); }
+
+/* ── limitations ── */
+.risk { display: grid; grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+.risk:first-child { border-top: 0; padding-top: 0; }
+@media (max-width: 760px) { .risk { grid-template-columns: 1fr; gap: 6px; } }
+.risk h4 { font-size: .95rem; margin-bottom: 4px; }
+.works { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.works li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; font-size: .9rem; }
+
+footer { margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: space-between; }
+@media (prefers-reduced-motion: no-preference) {
+  section.view:not([hidden]) > * { animation: rise .4s cubic-bezier(.2, .7, .2, 1) both; }
+  section.view:not([hidden]) > *:nth-child(2) { animation-delay: .04s; }
+  section.view:not([hidden]) > *:nth-child(3) { animation-delay: .08s; }
+  section.view:not([hidden]) > *:nth-child(4) { animation-delay: .12s; }
+}
+@keyframes rise { from { transform: translateY(6px); } to { transform: none; } }
+</style>
+
+<header class="bar">
+  <div class="bar-inner">
+    <div class="brand-row">
+      <svg class="mark" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="8" fill="var(--hero)"/><rect x="7" y="17" width="4" height="7" rx="1" fill="var(--static)"/><rect x="13" y="12" width="4" height="12" rx="1" fill="var(--llm)"/><rect x="19" y="6" width="4" height="18" rx="1" fill="var(--accent)"/></svg>
+      <div class="brand"><b>Intelligent Technical Debt &amp; Refactoring</b><span>LLM + RAG prioritisation of technical debt · research dashboard</span></div>
+      <div class="spacer"></div>
+      <span class="pill" id="pill-repo"><i></i><span></span></span>
+      <span class="pill" id="pill-state"><i></i><span></span></span>
+      <button class="icon-btn" id="theme" aria-label="Switch colour theme" title="Switch colour theme"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Dashboard sections">
+      <button role="tab" data-view="overview">Overview</button>
+      <button role="tab" data-view="method">Method</button>
+      <button role="tab" data-view="priorities">Priorities<span class="n" id="n-items"></span></button>
+      <button role="tab" data-view="evaluation">Evaluation</button>
+      <button role="tab" data-view="review">Expert review<span class="n" id="n-sample"></span></button>
+      <button role="tab" data-view="refactoring">Refactoring</button>
+      <button role="tab" data-view="limits">Limitations</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="view" id="view-overview" hidden></section>
+  <section class="view" id="view-method" hidden></section>
+  <section class="view" id="view-priorities" hidden></section>
+  <section class="view" id="view-evaluation" hidden></section>
+  <section class="view" id="view-review" hidden></section>
+  <section class="view" id="view-refactoring" hidden></section>
+  <section class="view" id="view-limits" hidden></section>
+  <footer id="footer"></footer>
+</main>
+
+<script type="application/json" id="data">/*__DASHBOARD_DATA__*/null</script>
+<script>
+(() => {
+"use strict";
+const D = JSON.parse(document.getElementById("data").textContent);
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const isNum = (v) => typeof v === "number" && !Number.isNaN(v);
+const fmt = (v, d = 3) => (v === null || v === undefined || (typeof v === "number" && Number.isNaN(v))) ? "–" : (isNum(v) ? (Number.isInteger(v) ? String(v) : v.toFixed(d)) : esc(v));
+const pct = (v) => isNum(v) ? `${Math.round(v * 100)}%` : "–";
+const store = {
+  get(k, f) { try { const v = localStorage.getItem(k); return v === null ? f : JSON.parse(v); } catch { return f; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
+};
+
+/* ── theme ── */
+const savedTheme = store.get("tdr.theme", null);
+if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+$("#theme").addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  store.set("tdr.theme", document.documentElement.dataset.theme);
+});
+
+/* ── data ── */
+const METHOD = {
+  static_score: { label: "Static score", color: "var(--static)", note: "Phase 1 composite (complexity, MI, severity)" },
+  complexity: { label: "Complexity only", color: "var(--cx)", note: "raw cyclomatic complexity — the plan's baseline" },
+  context_heuristic: { label: "Context heuristic", color: "var(--heur)", note: "equal-weight static + context features, no LLM" },
+  llm: { label: "LLM + RAG context", color: "var(--llm)", note: "proposed method: 3 agents with repository context" },
+  llm_nocontext: { label: "LLM, no context", color: "var(--llmnc)", note: "ablation: same LLM, metrics + code only" },
+};
+const repo = D.repo, meta = D.meta || {}, items = D.items || [], gt = D.groundTruth || {};
+const ev = D.evaluation || {}, ref = D.refactoring || {}, sample = D.expertSample || [];
+const runs = D.runs || {}, readiness = D.readiness || {}, scores = D.methodScores || {};
+const byId = Object.fromEntries(items.map((x) => [x.id, x]));
+const llm = Object.fromEntries((D.llm || []).filter((r) => r.llm_rank && !r.error).map((r) => [r.id, r]));
+const hasLLM = Object.keys(llm).length > 0;
+const sha = String(meta.snapshot_sha || "").slice(0, 8);
+const asOf = String(meta.as_of || "").slice(0, 10);
+const positives = new Set(Object.keys(gt).filter((k) => gt[k].future_defect));
+const phase1Total = Object.values(meta.phase1_by_tool || {}).reduce((a, b) => a + b, 0);
+const raters = D.raters || [];
+const llmFailed = (runs.llm || {}).total > 0 && (runs.llm || {}).ok === 0;
+
+/* ── header ── */
+$("#pill-repo span").textContent = `psf/${repo} @ ${sha}`;
+const checks = readiness.checks || [];
+const passed = checks.filter((c) => c.passed).length;
+$("#pill-state span").textContent = checks.length ? `${passed}/${checks.length} readiness checks` : "readiness not audited";
+if (passed < checks.length) $("#pill-state").classList.add("warn");
+$("#n-items").textContent = items.length;
+$("#n-sample").textContent = sample.length || "";
+$("#footer").innerHTML = `<span>Data baked from <code>data/${esc(repo)}_*.json</code> on ${esc(D.generated.replace("T", " ").replace("+00:00", ""))} UTC. Rebuild: <code>python run_dashboard.py</code></span><span>Every number on this page is computed from pipeline outputs; nothing is entered by hand.</span>`;
+
+/* ── shared helpers ── */
+const fnCell = (x) => `<span class="fn">${esc(x.function)}<small>${esc(x.file)}:${x.line}</small></span>`;
+const prioChip = (id) => { const r = llm[id]; return r ? `<span class="chip ${r.priority}">${r.priority}</span>` : `<span class="chip none">not ranked</span>`; };
+const methodRows = (s) => Object.entries((s || {}).methods || {});
+const orderOf = (name) => {
+  if (name === "static_score") return [...items].sort((a, b) => a.static_rank - b.static_rank).map((x) => x.id);
+  if (name === "llm" && hasLLM) return Object.values(llm).sort((a, b) => a.llm_rank - b.llm_rank).map((r) => r.id);
+  const s = scores[name] || {};
+  return Object.keys(s).sort((a, b) => (s[b] - s[a]) || (a < b ? -1 : 1));
+};
+const srcStart = (x) => x.line - Math.max(0, String(x.source).split("\n").findIndex((l) => /^\s*(async\s+)?def\s/.test(l)));
+const PY_KW = /\b(def|return|if|elif|else|for|while|in|not|and|or|is|None|True|False|try|except|finally|raise|with|as|import|from|class|lambda|yield|pass|break|continue|self)\b/g;
+function highlight(line) {
+  const out = []; let rest = line;
+  const ci = (() => { let q = null; for (let i = 0; i < line.length; i++) { const c = line[i]; if (q) { if (c === q) q = null; } else if (c === '"' || c === "'") q = c; else if (c === "#") return i; } return -1; })();
+  let comment = "";
+  if (ci >= 0) { comment = rest.slice(ci); rest = rest.slice(0, ci); }
+  rest.split(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/).forEach((part, i) => {
+    out.push(i % 2 ? `<span class="st">${esc(part)}</span>` : esc(part).replace(PY_KW, '<span class="kw">$1</span>'));
+  });
+  if (comment) out.push(`<span class="cm">${esc(comment)}</span>`);
+  return out.join("");
+}
+const codeBlock = (x) => { const s = srcStart(x); return `<pre class="code">${String(x.source).split("\n").map((l, i) => `<span class="ln">${s + i}</span>${highlight(l)}`).join("\n")}</pre>`; };
+const empty = (title, body, cmds = []) => `<div class="empty"><h3>${esc(title)}</h3><p class="muted prose">${body}</p>${cmds.map((c) => `<div class="cmd">${esc(c)}</div>`).join("")}</div>`;
+
+/* features normalised over all candidates, for heatmap and fingerprints */
+const FEATURES = [
+  ["complexity", "Complexity", (x) => x.complexity],
+  ["loc", "Lines", (x) => x.loc],
+  ["smells", "Smells", (x) => x.code_smells],
+  ["dup", "Duplication", (x) => x.duplicate_lines],
+  ["callers", "Callers", (x) => x.callers],
+  ["fixes", "Past fixes", (x) => x.func_fix_commits],
+  ["covgap", "Coverage gap", (x) => Math.round(100 - (x.function_coverage ?? 0))],
+];
+const FMAX = Object.fromEntries(FEATURES.map(([k, , f]) => [k, Math.max(1, ...items.map(f))]));
+
+/* ── charts ── */
+function scatter() {
+  const W = 720, H = 360, m = { l: 48, r: 18, t: 16, b: 44 };
+  const maxX = Math.ceil(Math.max(20, ...items.map((x) => x.complexity)) / 5) * 5;
+  const xs = (v) => m.l + (v / maxX) * (W - m.l - m.r), ys = (v) => H - m.b - (v / 10) * (H - m.t - m.b);
+  let g = "";
+  for (let t = 0; t <= 10; t += 2) g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${ys(t)}" y2="${ys(t)}"/><text x="${m.l - 10}" y="${ys(t) + 4}" text-anchor="end">${t}</text>`;
+  for (let t = 0; t <= maxX; t += 5) g += `<text x="${xs(t)}" y="${H - m.b + 18}" text-anchor="middle">${t}</text>`;
+  g += `<line class="ax" x1="${m.l}" x2="${W - m.r}" y1="${ys(0)}" y2="${ys(0)}"/>`;
+  g += `<text x="${(W + m.l) / 2}" y="${H - 6}" text-anchor="middle">Cyclomatic complexity</text>`;
+  g += `<text transform="translate(13 ${(H - m.b + m.t) / 2}) rotate(-90)" text-anchor="middle">Static debt score (0–10)</text>`;
+  const dots = [...items].sort((a, b) => b.loc - a.loc).map((x) => {
+    const r = 3.5 + Math.sqrt(x.loc) / 2.1, bug = positives.has(x.id), p = llm[x.id];
+    const fill = p ? `var(--${{ HIGH: "high", MEDIUM: "med", LOW: "low" }[p.priority]})` : "var(--llm)";
+    return `<circle cx="${xs(x.complexity).toFixed(1)}" cy="${ys(x.static_score).toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" fill-opacity="${bug ? .85 : .28}" stroke="${bug ? "var(--high)" : fill}" stroke-width="${bug ? 2.4 : 1}" data-id="${esc(x.id)}" style="cursor:pointer"><title>${esc(x.function)} — cc ${x.complexity}, score ${x.static_score}, ${x.loc} LOC${bug ? " — bug-fixed after cutoff" : ""}</title></circle>`;
+  }).join("");
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Scatter of complexity against static debt score">${g}${dots}</svg>`;
+}
+
+function lineChart({ series, xMax, yMax = 1, xLabel, yLabel, diag = false, xTicks, yTicks = [0, .25, .5, .75, 1], fmtX = (v) => v }) {
+  const W = 560, H = 330, m = { l: 46, r: 16, t: 14, b: 44 };
+  const xs = (v) => m.l + (v / xMax) * (W - m.l - m.r), ys = (v) => H - m.b - (v / yMax) * (H - m.t - m.b);
+  let g = "";
+  yTicks.forEach((t) => { g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${ys(t)}" y2="${ys(t)}"/><text x="${m.l - 9}" y="${ys(t) + 4}" text-anchor="end">${t}</text>`; });
+  xTicks.forEach((t) => { g += `<text x="${xs(t)}" y="${H - m.b + 18}" text-anchor="middle">${fmtX(t)}</text>`; });
+  g += `<line class="ax" x1="${m.l}" x2="${W - m.r}" y1="${ys(0)}" y2="${ys(0)}"/>`;
+  if (diag) g += `<line x1="${xs(0)}" y1="${ys(0)}" x2="${xs(xMax)}" y2="${ys(yMax)}" stroke="var(--line-2)" stroke-dasharray="4 4"/>`;
+  g += `<text x="${(W + m.l) / 2}" y="${H - 6}" text-anchor="middle">${esc(xLabel)}</text><text transform="translate(12 ${(H - m.b + m.t) / 2}) rotate(-90)" text-anchor="middle">${esc(yLabel)}</text>`;
+  series.forEach((s) => {
+    const d = s.points.map(([x, y], i) => `${i ? "L" : "M"}${xs(x).toFixed(1)} ${ys(y).toFixed(1)}`).join(" ");
+    g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.bold ? 3 : 2}" stroke-linejoin="round"/>`;
+    const [lx, ly] = s.points[s.points.length - 1];
+    g += `<circle cx="${xs(lx)}" cy="${ys(ly)}" r="3.5" fill="${s.color}"/>`;
+  });
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(yLabel)} by ${esc(xLabel)}">${g}</svg>`;
+}
+
+function barChart(rows, key, ciKey, lo) {
+  const W = 620, rowH = 38, m = { l: 160, r: 60, t: 24, b: 6 }, H = m.t + rows.length * rowH + m.b;
+  const xs = (v) => m.l + ((v - lo) / (1 - lo)) * (W - m.l - m.r);
+  let g = "";
+  (lo < 0 ? [-1, -.5, 0, .5, 1] : [0, .25, .5, .75, 1]).forEach((t) => { g += `<line class="gl" x1="${xs(t)}" x2="${xs(t)}" y1="${m.t - 6}" y2="${H - m.b}"/><text x="${xs(t)}" y="${m.t - 11}" text-anchor="middle">${t}</text>`; });
+  rows.forEach(([name, row], i) => {
+    const y = m.t + i * rowH + 8, v = row[key], mt = METHOD[name] || { label: name, color: "var(--muted)" };
+    g += `<text class="ink" x="${m.l - 12}" y="${y + 14}" text-anchor="end">${esc(mt.label)}</text>`;
+    if (!isNum(v)) { g += `<text x="${xs(Math.max(lo, 0)) + 6}" y="${y + 14}">not available</text>`; return; }
+    const x0 = xs(Math.max(lo, 0)), x1 = xs(v);
+    g += `<rect x="${Math.min(x0, x1)}" y="${y}" width="${Math.max(2, Math.abs(x1 - x0))}" height="20" rx="4" fill="${mt.color}"/>`;
+    const ci = ciKey && row[ciKey];
+    if (ci && isNum(ci[0]) && isNum(ci[1])) g += `<path d="M${xs(ci[0])} ${y + 10}H${xs(ci[1])}M${xs(ci[0])} ${y + 4}V${y + 16}M${xs(ci[1])} ${y + 4}V${y + 16}" stroke="var(--ink)" stroke-width="1.4" fill="none"/>`;
+    g += `<text class="ink num" x="${W - m.r + 10}" y="${y + 14}">${fmt(v)}</text>`;
+  });
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(key)} by method">${g}</svg>`;
+}
+
+function ring(passedN, total) {
+  const r = 46, c = 2 * Math.PI * r, f = total ? passedN / total : 0;
+  return `<svg class="ring" viewBox="0 0 112 112" role="img" aria-label="${passedN} of ${total} readiness checks passed"><circle cx="56" cy="56" r="${r}" fill="none" stroke="var(--hero-line)" stroke-width="9"/><circle cx="56" cy="56" r="${r}" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 56 56)"/><text x="56" y="58" text-anchor="middle" font-size="27" font-weight="800">${passedN}/${total}</text><text x="56" y="76" text-anchor="middle" font-size="9.5" fill="var(--hero-muted)" style="letter-spacing:.1em">CHECKS</text></svg>`;
+}
+
+/* ── overview ── */
+function renderOverview() {
+  const nByFile = {};
+  items.forEach((x) => { const f = x.file; nByFile[f] = nByFile[f] || { n: 0, loc: 0, score: 0, bugs: 0 }; nByFile[f].n++; nByFile[f].loc += x.loc; nByFile[f].score += x.static_score; if (positives.has(x.id)) nByFile[f].bugs++; });
+  const files = Object.entries(nByFile).sort((a, b) => b[1].loc - a[1].loc);
+  const maxLoc = Math.max(...files.map(([, v]) => v.loc));
+  const tools = Object.entries(meta.phase1_by_tool || {}).sort((a, b) => b[1] - a[1]);
+  const toolMax = Math.max(1, ...tools.map(([, v]) => v));
+  const toolColor = { pylint: "var(--static)", ruff: "var(--heur)", radon: "var(--accent)", vulture: "var(--llmnc)" };
+  const top = [...items].sort((a, b) => a.static_rank - b.static_rank).slice(0, 18);
+  const rd = D.retrievalDiagnostics || {}, tb = D.testBaseline || {};
+  const kpis = [
+    ["Functions indexed", meta.functions_indexed ?? "–", "", `whole <span class="mono">src/${esc(repo)}</span> at the cutoff`, "var(--static)"],
+    ["Debt candidates", items.length, "", "carry at least one debt signal", "var(--accent)"],
+    ["Static findings", phase1Total, "", "Radon, Ruff, Pylint, Vulture", "var(--heur)"],
+    ["Bug-fixed later", positives.size, `<small>/ ${items.length}</small>`, "ground truth from commits after the cutoff", "var(--high)"],
+    ["RAG neighbours", (rd.queries || 0) * (rd.neighbours_max || 0), "", `${rd.queries || 0} queries · ${(rd.self_matches || []).length} self-matches`, "var(--llm)"],
+    ["Test baseline", tb.passed ?? "–", tb.passed !== undefined ? `<small>passed</small>` : "", tb.passed !== undefined ? `${tb.failed} pre-existing failure(s) · ${Math.round(tb.duration_s || 0)} s` : "run Phase 6 to record", "var(--ok)"],
+  ];
+  const dm = (ev.defects || {}).methods || {};
+  const best = Object.entries(dm).filter(([, r]) => isNum(r.auc_future_defect)).sort((a, b) => b[1].auc_future_defect - a[1].auc_future_defect)[0];
+
+  $("#view-overview").innerHTML = `
+    <div class="hero">
+      <div>
+        <span class="eyebrow">Research question</span>
+        <h1>Can an LLM with <em>repository context</em> prioritise technical debt better than static analysis alone?</h1>
+        <p class="lede">We froze <b>psf/${esc(repo)}</b> at ${esc(asOf)}, scored ${items.length} debt-carrying functions with static tools, repository history and RAG, and test every ranking against what actually broke afterwards, against developer judgement, and through a CI-validated refactoring loop.</p>
+        <div class="hero-facts"><span>snapshot ${esc(sha)}</span><span>context ${esc(String(meta.history_since || "").slice(0, 4))}–${esc(asOf.slice(0, 4))}</span><span>ground truth ${esc(asOf.slice(0, 4))}–${esc(String(meta.horizon || "").slice(0, 4))}</span><span>${positives.size} later bug fixes</span>${best ? `<span>best AUC so far ${fmt(best[1].auc_future_defect, 2)} · ${esc((METHOD[best[0]] || {}).label || best[0])}</span>` : ""}</div>
+      </div>
+      <div class="ready">
+        <div class="ready-top">${ring(passed, checks.length)}<div><h3>Research readiness</h3><p>${passed === checks.length ? "All evidence collected." : "Automated audit of what evidence exists. Unchecked items are not claimed as results."}</p></div></div>
+        <ul class="checks">${checks.map((c) => `<li><span class="tick ${c.passed ? "y" : "n"}">${c.passed ? "✓" : ""}</span><div><div class="t">${esc(c.check)}</div><div class="d">${esc(c.detail)}</div></div></li>`).join("")}</ul>
+      </div>
+    </div>
+    ${llmFailed ? `<div class="callout"><b>LLM experiment has not produced results yet</b><p class="muted prose">The last Phase 4 run (${esc(runs.llm.model)}, ${esc(String(runs.llm.generated).slice(0, 16).replace("T", " "))}) returned 0/${runs.llm.total} rankings: ${esc(runs.llm.first_error)} The pipeline, prompts and RAG context are in place; results appear here automatically after a funded run.</p></div>` : ""}
+    <div class="kpis">${kpis.map(([k, v, suf, s, col]) => `<div class="kpi" style="--k:${col}"><span class="eyebrow">${k}</span><span class="v num">${v}${suf}</span><span class="s">${s}</span></div>`).join("")}</div>
+    <div class="grid">
+      <div class="card span-8">
+        <div class="card-head"><div><h2>Debt landscape</h2><span class="sub">Each dot is a candidate function; size is lines of code. Solid red rings were bug-fixed after the cutoff.</span></div></div>
+        ${scatter()}
+        <div class="legend">${hasLLM ? `<span><i class="dot" style="background:var(--high)"></i>LLM high</span><span><i class="dot" style="background:var(--med)"></i>medium</span><span><i class="dot" style="background:var(--low)"></i>low</span>` : `<span><i class="dot" style="background:var(--llm);opacity:.4"></i>debt candidate</span>`}<span><i class="dot" style="background:var(--high)"></i>bug-fixed after cutoff</span></div>
+      </div>
+      <div class="card span-4">
+        <div class="card-head"><div><h2>Phase 1 findings</h2><span class="sub">${phase1Total} raw findings across ${tools.length} tools</span></div></div>
+        <div class="hbars">${tools.map(([t, v]) => `<div class="hb"><span class="lab">${esc(t)}</span><span class="track"><b style="width:${(v / toolMax * 100).toFixed(1)}%;background:${toolColor[t] || "var(--static)"}"></b></span><span class="val">${v}</span></div>`).join("")}</div>
+        <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px">
+          <span class="eyebrow">Candidates by module · bar = total LOC</span>
+          <div class="hbars">${files.map(([f, v]) => `<div class="hb"><span class="lab" title="${esc(f)}">${esc(f.replace(repo + "/", ""))}</span><span class="track"><b style="width:${(v.loc / maxLoc * 100).toFixed(1)}%;background:var(--accent);opacity:${(.35 + .65 * Math.min(1, v.score / v.n / 6)).toFixed(2)}"></b></span><span class="val">${v.n}${v.bugs ? `<span style="color:var(--high)"> ·${v.bugs}</span>` : ""}</span></div>`).join("")}</div>
+          <span class="sub">Number = candidates; red = later bug-fixed. Darker bars carry a higher mean static score.</span>
+        </div>
+      </div>
+      <div class="card span-12">
+        <div class="card-head"><div><h2>Debt fingerprint</h2><span class="sub">Top ${top.length} functions by static rank. Cell shade is the value relative to the largest among all ${items.length} candidates; the repository-context columns are what static analysis alone cannot see.</span></div>
+          <div class="legend"><span><i style="background:color-mix(in srgb, var(--accent) 15%, var(--surface))"></i>low</span><span><i style="background:var(--accent)"></i>high</span><span><span class="chip bug">bug</span> fixed after cutoff</span></div></div>
+        <div class="heat-wrap"><table class="heat"><thead><tr><th class="fn-h">#&nbsp; Function</th>${FEATURES.map(([, l]) => `<th>${l}</th>`).join("")}<th>Static</th></tr></thead><tbody>
+          ${top.map((x) => `<tr><td class="fn-c" data-id="${esc(x.id)}" title="${esc(x.id)}"><span class="muted">${x.static_rank}</span>&nbsp; ${esc(x.function)} ${positives.has(x.id) ? `<span class="chip bug">bug</span>` : ""}</td>${FEATURES.map(([k, , f]) => { const v = f(x), a = Math.min(1, v / FMAX[k]); return `<td style="background:color-mix(in srgb, var(--accent) ${Math.round(8 + a * 82)}%, var(--surface));${a > .55 ? "color:var(--hero)" : ""}">${v}</td>`; }).join("")}<td style="background:var(--sunken)">${x.static_score}</td></tr>`).join("")}
+        </tbody></table></div>
+      </div>
+    </div>`;
+  $$("#view-overview [data-id]").forEach((n) => n.addEventListener("click", () => openItem(n.dataset.id)));
+}
+
+/* ── method ── */
+function renderMethod() {
+  const tb = D.testBaseline || {}, rd = D.retrievalDiagnostics || {};
+  const st = {
+    snap: "done", p1: "done", p2: "done", items: "done",
+    rag: rd.queries ? "done" : "todo",
+    p4: hasLLM ? "done" : (llmFailed ? "part" : "todo"),
+    gt: Object.keys(gt).length ? "done" : "todo",
+    exp: raters.length >= 2 ? "done" : (raters.length ? "part" : "todo"),
+    p5: ev.defects ? (hasLLM && raters.length >= 2 ? "done" : "part") : "todo",
+    p6: ref.summary ? "done" : (tb.passed ? "part" : "todo"),
+  };
+  const node = (x, y, w, key, t, s) => `<g class="node ${st[key]}" transform="translate(${x} ${y})"><rect width="${w}" height="58" rx="10"/><circle class="st-${st[key]}" cx="${w - 13}" cy="13" r="4.5"/><text class="t" x="14" y="25">${t}</text><text class="s" x="14" y="43">${s}</text></g>`;
+  const e = (d, flow) => `<path class="edge ${flow ? "flow" : ""}" d="${d}" marker-end="url(#ah)"/>`;
+  const diagram = `<svg class="chart" viewBox="0 0 1000 330" role="img" aria-label="Pipeline architecture">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--line-2)"/></marker></defs>
+    <text x="0" y="14" class="ink" style="font:600 10.5px var(--body);letter-spacing:.1em">BEFORE CUTOFF · ${esc(asOf)}</text>
+    <text x="0" y="318" class="ink" style="font:600 10.5px var(--body);letter-spacing:.1em">AFTER CUTOFF</text>
+    ${e("M172 59H200", true)}${e("M372 59H400", true)}${e("M572 59H600", true)}${e("M772 59H800", true)}
+    ${e("M886 88V128", true)}${e("M800 158H772", true)}${e("M686 188V228", false)}${e("M600 158H572", false)}
+    ${e("M172 258H400", false)}${e("M486 188V228", false)}
+    ${node(0, 30, 172, "snap", `Snapshot ${esc(sha)}`, `psf/${esc(repo)} · git worktree`)}
+    ${node(200, 30, 172, "p1", "1 · Static analysis", "Radon · Ruff · Pylint · Vulture")}
+    ${node(400, 30, 172, "p2", "2 · Repo context", "callers · history · coverage")}
+    ${node(600, 30, 172, "items", `Debt items (${items.length})`, "function-level, no labels")}
+    ${node(800, 30, 172, "rag", "3 · RAG retrieval", `ChromaDB · ${esc(rd.embedding_model || "MiniLM")}`)}
+    ${node(800, 130, 172, "p4", "4 · LLM agents", "Analysis → Priority → Refactor")}
+    ${node(600, 130, 172, "p6", "6 · Refactor + CI", `tests vs baseline (${tb.passed ?? "–"})`)}
+    ${node(400, 130, 172, "p5", "5 · Evaluation", "ρ · P@K · NDCG · AUC · CIs")}
+    ${node(0, 228, 172, "gt", "Ground truth", `${positives.size} bug-fixed · post-cutoff`)}
+    ${node(400, 228, 172, "exp", "Expert ratings", `${raters.length} rater(s) · ${sample.length} sampled`)}
+    ${node(600, 228, 172, "p6", "ai-refactoring/*", "local branches + diffs")}
+  </svg>`;
+  const y0 = Number(String(meta.history_since || "2019").slice(0, 4)), yc = Number(asOf.slice(0, 4)), y1 = Number(String(meta.horizon || "2026").slice(0, 4)) + 1;
+  const tl = (() => {
+    const W = 1000, H = 120, m = 30, xs = (y) => m + ((y - y0) / (y1 - y0)) * (W - 2 * m);
+    let g = "";
+    for (let y = y0; y <= y1; y++) g += `<line x1="${xs(y)}" x2="${xs(y)}" y1="64" y2="72" stroke="var(--line-2)"/><text x="${xs(y)}" y="90" text-anchor="middle">${y}</text>`;
+    g += `<rect x="${xs(y0)}" y="34" width="${xs(yc) - xs(y0)}" height="26" rx="6" fill="var(--llm)" fill-opacity=".16" stroke="var(--llm)"/><text x="${(xs(y0) + xs(yc)) / 2}" y="51" text-anchor="middle" class="ink">Context window · features the rankers may use</text>`;
+    g += `<rect x="${xs(yc)}" y="34" width="${xs(y1 - .25) - xs(yc)}" height="26" rx="6" fill="var(--high)" fill-opacity=".14" stroke="var(--high)"/><text x="${(xs(yc) + xs(y1 - .25)) / 2}" y="51" text-anchor="middle" class="ink">Ground truth · hidden</text>`;
+    g += `<line x1="${xs(yc)}" x2="${xs(yc)}" y1="14" y2="74" stroke="var(--accent)" stroke-width="2.5"/><text x="${xs(yc)}" y="10" text-anchor="middle" class="ink">cutoff ${esc(asOf)} · ${esc(sha)}</text>`;
+    g += `<line x1="${m}" x2="${W - m}" y1="68" y2="68" stroke="var(--line-2)"/>`;
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Temporal split timeline">${g}</svg>`;
+  })();
+  const llmCfg = runs.llm || {};
+  $("#view-method").innerHTML = `
+    <div class="card"><div class="card-head"><div><h2>System architecture</h2><span class="sub">Green = done and verified · amber = partially run · dashed = waiting for input. Animated edges carry data that exists today.</span></div></div><div class="diagram">${diagram}</div></div>
+    <div class="card"><div class="card-head"><div><h2>Temporal split — why the evaluation is fair</h2><span class="sub">Every input a ranker sees comes from before the cutoff. Commits after it become labels stored in a separate file that no ranker reads.</span></div></div>${tl}</div>
+    <div class="grid">
+      <div class="card span-6"><h2>Methods compared</h2><div class="def-grid">${Object.entries(METHOD).map(([k, v]) => `<div class="def"><span class="chip ${k.startsWith("llm") ? "acc" : "none"} tag"><i style="width:8px;height:8px;border-radius:50%;background:${v.color};display:inline-block"></i>${k.startsWith("llm") ? "LLM" : "baseline"}</span><h3>${v.label}</h3><p class="sub">${v.note}</p></div>`).join("")}</div></div>
+      <div class="card span-6"><h2>Ground truths &amp; metrics</h2><div class="def-grid">
+        <div class="def"><h3>Later bug fixes</h3><p class="sub">Function changed by a fix commit after the cutoff (commit + PR message, typo/docs/CI excluded). ${positives.size} positives.</p></div>
+        <div class="def"><h3>Change-proneness</h3><p class="sub">All non-sweeping commits after the cutoff (sweeps touching &gt;25 functions dropped).</p></div>
+        <div class="def"><h3>Expert ratings</h3><p class="sub">Blind 1–10 urgency for ${sample.length} stratified functions; agreement via Kendall's W.</p></div>
+        <div class="def"><h3>Metrics</h3><p class="sub">Spearman ρ, Kendall τ, Precision@K, NDCG@10, ROC-AUC, bootstrap 95% CIs and paired Δρ tests.</p></div>
+      </div></div>
+    </div>
+    <div class="card"><div class="card-head"><div><h2>Reproducibility</h2><span class="sub">Everything needed to rerun the experiment and get the same numbers.</span></div></div>
+      <div class="kv">
+        <div>Target</div><div><span class="mono">psf/${esc(repo)}</span> · snapshot <span class="mono">${esc(meta.snapshot_sha || "")}</span></div>
+        <div>Windows</div><div>context ${esc(String(meta.history_since || "").slice(0, 10))} → ${esc(asOf)} · labels ${esc(asOf)} → ${esc(String(meta.horizon || "").slice(0, 10))}</div>
+        <div>Dataset</div><div>${meta.functions_indexed} functions → ${items.length} candidates · sha256 <span class="mono">${esc(String(llmCfg.dataset_sha256 || "–").slice(0, 16))}…</span></div>
+        <div>Retrieval</div><div>${esc(rd.store || "ChromaDB")} · ${esc(rd.embedding_model || "all-MiniLM-L6-v2")} · top-${rd.neighbours_max || 5}, self excluded</div>
+        <div>LLM</div><div><span class="mono">${esc(llmCfg.model || "not configured")}</span> · structured JSON output · responses cached on disk</div>
+        <div>Expert sample</div><div>${sample.length} items, stratified by static-score tertile, seed 42</div>
+        <div>Tests</div><div>${(D.testBaseline || {}).passed ?? "–"} passed on the unmodified snapshot; pre-existing failures are not blamed on patches</div>
+      </div>
+      <div class="cmd">python run_dataset.py --repo targets/${esc(repo)} --as-of ${esc(asOf)} --source-subdir src/${esc(repo)}
+python run_prioritisation.py            # Phase 4 (+ --no-context --mode single for the ablation)
+python run_evaluation.py                # Phase 5
+python run_refactoring.py --test-python targets/.venv-${esc(repo)}/Scripts/python   # Phase 6
+python run_dashboard.py                 # this page</div>
+    </div>`;
+}
+
+/* ── priorities ── */
+const P = store.get("tdr.priorities", { q: "", sort: "rank", dir: 1, bugs: true, sel: null });
+const COLS = [
+  { k: "rank", label: hasLLM ? "LLM #" : "Rank", r: true, v: (x) => hasLLM ? (llm[x.id] ? llm[x.id].llm_rank : 999) : x.static_rank },
+  { k: "fn", label: "Function", v: (x) => x.id },
+  { k: "prio", label: "LLM priority", v: (x) => -(llm[x.id] ? llm[x.id].priority_score : -1) },
+  { k: "static", label: "Static score", r: true, v: (x) => -x.static_score },
+  { k: "cc", label: "CC", r: true, v: (x) => -x.complexity },
+  { k: "callers", label: "Callers", r: true, v: (x) => -x.callers },
+  { k: "fixes", label: "Past fixes", r: true, v: (x) => -x.func_fix_commits },
+  { k: "cov", label: "Coverage", r: true, v: (x) => x.function_coverage },
+];
+function renderPriorities() {
+  const view = $("#view-priorities");
+  view.innerHTML = `
+    ${hasLLM ? "" : `<div class="callout info"><b>Showing the static ranking</b><p class="muted prose">LLM priority, score and reasoning fill in after a successful Phase 4 run. Click any row to inspect its metrics, repository context, RAG neighbours and source.</p></div>`}
+    <div class="toolbar"><input type="search" id="q" class="field" placeholder="Filter by function or file…" value="${esc(P.q)}" aria-label="Filter functions"><label class="check"><input type="checkbox" id="bugs" ${P.bugs ? "checked" : ""}> Mark functions bug-fixed after the cutoff</label><span class="sub" id="count"></span></div>
+    <div class="split">
+      <div class="table-wrap"><table class="data click"><thead><tr>${COLS.map((c) => `<th class="sortable ${c.r ? "r" : ""}" data-k="${c.k}" ${P.sort === c.k ? `aria-sort="${P.dir > 0 ? "ascending" : "descending"}"` : ""}>${c.label}${P.sort === c.k ? (P.dir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr></thead><tbody id="rows"></tbody></table></div>
+      <aside class="card detail" id="detail" aria-live="polite"></aside>
+    </div>`;
+  $("#q").addEventListener("input", (e) => { P.q = e.target.value; store.set("tdr.priorities", P); drawRows(); });
+  $("#bugs").addEventListener("change", (e) => { P.bugs = e.target.checked; store.set("tdr.priorities", P); drawRows(); });
+  $$("#view-priorities th.sortable").forEach((th) => th.addEventListener("click", () => { if (P.sort === th.dataset.k) P.dir *= -1; else { P.sort = th.dataset.k; P.dir = 1; } store.set("tdr.priorities", P); renderPriorities(); }));
+  drawRows();
+  drawDetail(P.sel && byId[P.sel] ? P.sel : orderOf(hasLLM ? "llm" : "static_score")[0]);
+}
+function drawRows() {
+  const col = COLS.find((c) => c.k === P.sort) || COLS[0], q = P.q.trim().toLowerCase();
+  const rows = items.filter((x) => !q || x.id.toLowerCase().includes(q)).sort((a, b) => { const va = col.v(a), vb = col.v(b); return ((va < vb ? -1 : va > vb ? 1 : 0) * P.dir) || (a.static_rank - b.static_rank); });
+  $("#count").textContent = `${rows.length} of ${items.length}`;
+  const maxS = Math.max(...items.map((x) => x.static_score));
+  $("#rows").innerHTML = rows.map((x) => { const r = llm[x.id]; return `<tr data-id="${esc(x.id)}" class="${r ? "sev-" + r.priority : ""} ${P.sel === x.id ? "sel" : ""}">
+    <td class="r num">${hasLLM ? (r ? r.llm_rank : "–") : x.static_rank}</td>
+    <td>${fnCell(x)}${P.bugs && positives.has(x.id) ? ` <span class="chip bug">later bug fix</span>` : ""}</td>
+    <td>${r ? `${prioChip(x.id)} <span class="num muted">${r.priority_score}</span>` : `<span class="muted">–</span>`}</td>
+    <td class="r num"><span class="mbar"><b style="width:${(x.static_score / maxS * 100).toFixed(0)}%"></b></span> ${x.static_score}</td>
+    <td class="r num">${x.complexity}</td><td class="r num">${x.callers}</td><td class="r num">${x.func_fix_commits}</td><td class="r num">${fmt(x.function_coverage, 0)}%</td></tr>`; }).join("") || `<tr><td colspan="${COLS.length}" class="muted">No function matches “${esc(P.q)}”.</td></tr>`;
+  $$("#rows tr[data-id]").forEach((tr) => tr.addEventListener("click", () => drawDetail(tr.dataset.id)));
+}
+function drawDetail(id) {
+  const x = byId[id]; if (!x) return;
+  P.sel = id; store.set("tdr.priorities", P);
+  $$("#rows tr").forEach((tr) => tr.classList.toggle("sel", tr.dataset.id === id));
+  const r = llm[id], g = gt[id] || {}, nb = (D.neighbours || {})[id] || [];
+  const facts = [["Complexity", `${x.complexity} (${x.complexity_rank})`], ["Lines", x.loc], ["Params", x.params], ["Static score", x.static_score], ["Static rank", `#${x.static_rank}`], ["File MI", x.maintainability_index], ["Callers", x.callers], ["Test refs", x.test_references], ["Coverage", `${fmt(x.function_coverage, 1)}%`], ["Past commits", x.func_commits], ["Past fixes", x.func_fix_commits], ["File defects", x.defect_commits]];
+  $("#detail").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px"><span class="eyebrow">${esc(x.file)} · line ${x.line}</span><h2 class="mono" style="font:600 1.02rem var(--mono);overflow-wrap:anywhere">${esc(x.function)}</h2>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${prioChip(id)}${r ? `<span class="chip acc">${r.priority_score}/100 · LLM #${r.llm_rank}</span>` : ""}${x.dead_code ? `<span class="chip warn">dead code</span>` : ""}<span class="chip none">${x.is_private ? "private helper" : "public API"}</span>${g.future_defect ? `<span class="chip bug">bug-fixed later · ${esc((g.fix_shas || []).join(", "))}</span>` : ""}</div></div>
+    ${r ? `<div class="callout info"><b>Why this priority</b><p>${esc(r.reason)}</p><p><b>Recommended:</b> ${esc(r.action)}</p></div>` : ""}
+    <div class="facts">${facts.map(([k, v]) => `<div class="fact"><span class="k">${k}</span><span class="v num">${esc(v)}</span></div>`).join("")}</div>
+    <div class="fp"><span class="eyebrow">Fingerprint · relative to all candidates</span>${FEATURES.map(([k, l, f]) => `<div class="fp-row"><span>${l}</span><span class="track"><b style="width:${Math.min(100, f(x) / FMAX[k] * 100).toFixed(0)}%"></b></span><span class="val">${f(x)}</span></div>`).join("")}</div>
+    ${x.tool_messages && x.tool_messages.length ? `<div><span class="eyebrow">Tool findings</span><ul style="margin:6px 0 0;padding-left:18px">${x.tool_messages.map((m) => `<li class="mono" style="font-size:.78rem">${esc(m)}</li>`).join("")}</ul></div>` : ""}
+    ${nb.length ? `<div><span class="eyebrow">RAG neighbours · what the LLM sees for calibration</span><ul class="nb">${nb.map((n) => { const y = byId[n.id]; return `<li data-id="${esc(n.id)}"><span class="fn">${esc(n.id.split("::")[1] || n.id)}<small>${esc(n.id.split("::")[0])}</small></span><span class="mono muted" style="font-size:.74rem">d ${n.distance.toFixed(3)}${y ? ` · cc ${y.complexity}` : ""}</span></li>`; }).join("")}</ul></div>` : ""}
+    ${x.docstring ? `<p class="sub prose">“${esc(x.docstring)}”</p>` : ""}
+    <details open><summary>Source at snapshot</summary>${codeBlock(x)}</details>`;
+  $$("#detail .nb li").forEach((li) => li.addEventListener("click", () => byId[li.dataset.id] && drawDetail(li.dataset.id)));
+}
+function openItem(id) { P.sel = id; store.set("tdr.priorities", P); if (location.hash === "#priorities") renderPriorities(); else location.hash = "priorities"; }
+
+/* ── evaluation ── */
+const E = store.get("tdr.eval", { metric: "precision@10" });
+function precisionCurve(name, maxK) { const o = orderOf(name); let hit = 0; const pts = []; for (let k = 1; k <= Math.min(maxK, o.length); k++) { if (positives.has(o[k - 1])) hit++; pts.push([k, hit / k]); } return pts; }
+function rocCurve(name) {
+  const s = scores[name] || {}; const ids = Object.keys(s).filter((i) => i in gt); const P1 = ids.filter((i) => positives.has(i)).length, N1 = ids.length - P1;
+  if (!P1 || !N1) return [[0, 0], [1, 1]];
+  const groups = {}; ids.forEach((i) => { (groups[s[i]] = groups[s[i]] || []).push(i); });
+  let tp = 0, fp = 0; const pts = [[0, 0]];
+  Object.keys(groups).map(Number).sort((a, b) => b - a).forEach((v) => { groups[v].forEach((i) => positives.has(i) ? tp++ : fp++); pts.push([fp / N1, tp / P1]); });
+  return pts;
+}
+function renderEvaluation() {
+  const view = $("#view-evaluation"), d = ev.defects;
+  if (!d) { view.innerHTML = empty("No evaluation yet", "Run the evaluation to compare methods.", ["python run_evaluation.py", "python run_dashboard.py"]); return; }
+  const names = Object.keys(scores).filter((n) => n !== "llm" || hasLLM);
+  const series = (fn) => names.map((n) => ({ color: METHOD[n].color, bold: n === "llm", points: fn(n) }));
+  const METRICS = {
+    "precision@10": ["Precision@10 · later bug fixes", "defects", "precision@10", null, 0],
+    "precision@5": ["Precision@5 · later bug fixes", "defects", "precision@5", null, 0],
+    "auc_future_defect": ["ROC-AUC · bug-fixed vs not", "defects", "auc_future_defect", null, 0],
+    "ndcg@10_fix_commits": ["NDCG@10 · bug-fix commits", "defects", "ndcg@10_fix_commits", null, 0],
+    "spearman_vs_change_commits": ["Spearman ρ · later changes (95% CI)", "defects", "spearman_vs_change_commits", "spearman_vs_change_commits_ci95", -1],
+  };
+  const hasExp = ev.experts && ev.experts.methods && Object.keys(ev.experts.methods).length;
+  if (hasExp) { METRICS.exp = ["Spearman ρ · experts (95% CI)", "experts", "spearman", "spearman_ci95", -1]; METRICS.expP = ["Top-10 overlap · experts", "experts", "precision@10", null, 0]; }
+  if (!METRICS[E.metric]) E.metric = "precision@10";
+  const [, sec, key, ci, lo] = METRICS[E.metric];
+  const legend = `<div class="legend">${names.map((n) => `<span><i style="background:${METHOD[n].color}"></i>${METHOD[n].label}${dm(n, "auc_future_defect") !== null ? ` <span class="mono">AUC ${fmt(dm(n, "auc_future_defect"), 2)}</span>` : ""}</span>`).join("")}</div>`;
+  function dm(n, k) { const r = (d.methods || {})[n]; return r && isNum(r[k]) ? r[k] : null; }
+  const table = (s, cols) => `<div class="table-wrap"><table class="data"><thead><tr><th>Method</th>${cols.map(([, l]) => `<th class="r">${l}</th>`).join("")}</tr></thead><tbody>${methodRows(s).map(([n, r]) => { const bestOf = (k) => Math.max(...methodRows(s).map(([, rr]) => isNum(rr[k]) ? rr[k] : -9)); return `<tr><td><span class="legend"><span><i class="dot" style="background:${(METHOD[n] || {}).color}"></i><b style="color:var(--ink)">${esc((METHOD[n] || { label: n }).label)}</b></span></span></td>${cols.map(([k]) => Array.isArray(r[k]) ? `<td class="r num muted">[${fmt(r[k][0], 2)}, ${fmt(r[k][1], 2)}]</td>` : `<td class="r num" style="${isNum(r[k]) && r[k] === bestOf(k) ? "font-weight:700;color:var(--accent-ink)" : ""}">${fmt(r[k])}</td>`).join("")}</tr>`; }).join("")}</tbody></table></div>`;
+  const ag = ev.expert_agreement || {};
+  view.innerHTML = `
+    ${(ev.excluded_experiments || []).length ? `<div class="callout"><b>Excluded from comparison</b>${ev.excluded_experiments.map((t) => `<p class="muted">${esc(t)}</p>`).join("")}<p class="muted">Only methods with complete, successful runs are scored, so every number below compares methods on the same ${d.n_items} functions.</p></div>` : ""}
+    <div class="grid">
+      <div class="card span-6"><div class="card-head"><div><h2>Precision@K</h2><span class="sub">Share of each method's top-K that was bug-fixed after the cutoff. Base rate ${pct(positives.size / d.n_items)}.</span></div></div>
+        ${lineChart({ series: series((n) => precisionCurve(n, 30)), xMax: 30, xLabel: "K (top-K functions)", yLabel: "Precision", xTicks: [1, 5, 10, 15, 20, 25, 30] })}${legend}</div>
+      <div class="card span-6"><div class="card-head"><div><h2>ROC curve</h2><span class="sub">How well each score separates functions that later needed a fix (${positives.size}) from those that did not (${d.n_items - positives.size}).</span></div></div>
+        ${lineChart({ series: series(rocCurve), xMax: 1, xLabel: "False positive rate", yLabel: "True positive rate", diag: true, xTicks: [0, .25, .5, .75, 1] })}${legend}</div>
+    </div>
+    <div class="card"><div class="card-head"><div><h2>Method comparison</h2><span class="sub">${d.n_items} functions · ${d.n_positive} positives. Whiskers are bootstrap 95% confidence intervals.</span></div>
+      <select id="metric" class="field" aria-label="Metric">${Object.entries(METRICS).map(([k, v]) => `<option value="${k}" ${k === E.metric ? "selected" : ""}>${v[0]}</option>`).join("")}</select></div>
+      ${barChart(methodRows(ev[sec]), key, ci, lo)}</div>
+    <div class="card"><h2>Against post-cutoff history</h2>${table(d, [["precision@5", "P@5"], ["precision@10", "P@10"], ["precision@20", "P@20"], ["auc_future_defect", "AUC"], ["ndcg@10_fix_commits", "NDCG@10"], ["spearman_vs_fix_commits", "ρ fixes"], ["spearman_vs_change_commits", "ρ changes"], ["spearman_vs_change_commits_ci95", "95% CI"]])}<p class="sub">Bold amber = best value in the column.</p></div>
+    <div class="card"><div class="card-head"><div><h2>Against expert rankings</h2><span class="sub">${hasExp ? `${(ag.raters || []).length} rater(s) · Kendall's W ${fmt(ag.kendalls_w)} · mean pairwise ρ ${fmt(ag.mean_pairwise_spearman)}` : "Primary ground truth in the project plan"}</span></div></div>
+      ${hasExp ? table(ev.experts, [["spearman", "ρ"], ["spearman_ci95", "95% CI"], ["kendall_tau", "τ"], ["precision@5", "P@5"], ["precision@10", "P@10"], ["ndcg@10", "NDCG@10"]]) : empty("Waiting for expert ratings", `${raters.length} of the recommended 2–3 independent raters have submitted. Ratings are collected blind in the Expert review tab.`)}</div>
+    ${(ev.paired || []).length ? `<div class="card"><h2>Paired comparisons</h2><div class="table-wrap"><table class="data"><thead><tr><th>Comparison</th><th>Ground truth</th><th class="r">Δρ</th><th class="r">95% CI</th><th>Significant</th></tr></thead><tbody>${ev.paired.map((p) => `<tr><td>${esc(p.comparison)}</td><td>${esc(p.truth)}</td><td class="r num">${fmt(p.delta_spearman)}</td><td class="r num">[${fmt(p.ci95[0])}, ${fmt(p.ci95[1])}]</td><td>${p.significant ? `<span class="chip ok">yes</span>` : `<span class="chip none">no</span>`}</td></tr>`).join("")}</tbody></table></div></div>` : ""}
+    <div class="card"><h2>Reading the baseline results</h2><ul class="works">
+      <li><span class="chip none">1</span><span>Static analysis is a strong baseline on this repository: the composite score reaches AUC ${fmt(dm("static_score", "auc_future_defect"), 2)} and Precision@10 ${fmt(dm("static_score", "precision@10"), 2)}, so ${Math.round((dm("static_score", "precision@10") || 0) * 10)} of its top 10 functions really were bug-fixed later.</span></li>
+      <li><span class="chip none">2</span><span>Adding repository context without an LLM (context heuristic) raises AUC to ${fmt(dm("context_heuristic", "auc_future_defect"), 2)} but not Precision@10 (${fmt(dm("context_heuristic", "precision@10"), 2)}), which suggests context helps overall ordering more than the very top of the list.</span></li>
+      <li><span class="chip none">3</span><span>All confidence intervals overlap, because only ${positives.size} of ${d.n_items} functions are positives. Differences between baselines are not statistically significant; the LLM must clear this bar by a margin to support the hypothesis.</span></li>
+    </ul></div>`;
+  $("#metric").addEventListener("change", (e) => { E.metric = e.target.value; store.set("tdr.eval", E); renderEvaluation(); });
+}
+
+/* ── expert review ── */
+const R = store.get(`tdr.rating.${repo}`, { rater: "", scores: {}, notes: {}, touched: {} });
+R.touched = R.touched || {};
+const ratingJSON = () => { const s = {}, n = {}; sample.forEach((id) => { s[id] = Number(R.scores[id] ?? 5); if (R.notes[id]) n[id] = R.notes[id]; }); return JSON.stringify({ rater: R.rater || "your-name", scores: s, notes: n }, null, 2); };
+function renderReview() {
+  const view = $("#view-review");
+  if (!sample.length) { view.innerHTML = empty("No sample drawn yet", "Draw the stratified sample of functions that raters will score.", ["python run_evaluation.py --make-expert-sample", "python run_dashboard.py"]); return; }
+  const done = () => sample.filter((id) => R.touched[id]).length;
+  const file = () => (R.rater || "your-name").trim().replace(/[^A-Za-z0-9_-]+/g, "_") || "rater";
+  view.innerHTML = `
+    <div class="grid">
+      <div class="card span-8"><h2>Blind expert review</h2><p class="prose">For each function, judge <b>how urgently it should be refactored</b>: 1 = leave alone, 10 = fix first. Use the metrics and the code. Method rankings and bug-fix labels are hidden on purpose. Please rate on your own, without discussing with other raters.</p>
+        <div class="toolbar"><label for="rater" style="font-weight:600">Your name</label><input id="rater" class="field" value="${esc(R.rater)}" placeholder="e.g. asad" style="flex:0 1 240px"></div></div>
+      <div class="card span-4"><span class="eyebrow">Progress</span><div class="kpi" style="box-shadow:none;border:0;padding:0"><span class="v num" id="prog-v">${done()}<small>/ ${sample.length}</small></span></div><div class="progress"><b id="prog-b" style="width:${(done() / sample.length * 100).toFixed(0)}%"></b></div><span class="sub">${raters.length} rater file(s) collected so far${raters.length ? `: ${raters.map((r) => esc(r.rater)).join(", ")}` : ""}.</span></div>
+    </div>
+    <div class="card">${sample.map((id, i) => { const x = byId[id]; if (!x) return ""; const v = R.scores[id] ?? 5; return `<div class="rate-card">
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0"><span class="eyebrow">${i + 1} of ${sample.length} · ${esc(x.file)}:${x.line}</span><span class="fn" style="font-size:.95rem">${esc(x.function)}</span>
+        <div class="mini"><span>CC <b>${x.complexity}</b></span><span>LOC <b>${x.loc}</b></span><span>smells <b>${x.code_smells}</b></span><span>dup <b>${x.duplicate_lines}</b></span><span>callers <b>${x.callers}</b></span><span>past changes <b>${x.func_commits}</b></span><span>past fixes <b>${x.func_fix_commits}</b></span><span>coverage <b>${fmt(x.function_coverage, 0)}%</b></span>${x.dead_code ? "<span><b>dead code</b></span>" : ""}</div>
+        <details><summary>Source code</summary>${codeBlock(x)}</details></div>
+      <div class="rate-ctl"><label for="s-${i}" class="eyebrow">Urgency</label><output id="o-${i}">${v}</output><input type="range" id="s-${i}" min="1" max="10" step="1" value="${v}" data-id="${esc(id)}" data-o="o-${i}"><div class="scale"><span>1 leave</span><span>10 fix first</span></div>
+        <input id="n-${i}" class="field" placeholder="Note (optional)" value="${esc(R.notes[id] || "")}" data-note="${esc(id)}" aria-label="Note for ${esc(x.function)}"></div></div>`; }).join("")}</div>
+    <div class="card"><h2>Submit your ratings</h2><p class="prose">Copy the JSON and save it in the project as <code id="fname">evaluation/expert_rankings/${esc(file())}.json</code>, then run <code>python run_evaluation.py</code>.</p>
+      <textarea class="json" id="out" readonly aria-label="Ratings JSON">${esc(ratingJSON())}</textarea>
+      <div class="toolbar"><button class="btn" id="copy">Copy ratings</button><span class="status-line" id="copy-status">Draft saved in this browser as you go.</span></div></div>`;
+  const sync = () => { store.set(`tdr.rating.${repo}`, R); $("#out").value = ratingJSON(); const n = done(); $("#prog-v").innerHTML = `${n}<small>/ ${sample.length}</small>`; $("#prog-b").style.width = `${(n / sample.length * 100).toFixed(0)}%`; $("#fname").textContent = `evaluation/expert_rankings/${file()}.json`; };
+  $("#rater").addEventListener("input", (e) => { R.rater = e.target.value; sync(); });
+  $$("#view-review input[type=range]").forEach((s) => s.addEventListener("input", () => { R.scores[s.dataset.id] = Number(s.value); R.touched[s.dataset.id] = true; $("#" + s.dataset.o).textContent = s.value; sync(); }));
+  $$("#view-review input[data-note]").forEach((n) => n.addEventListener("input", () => { R.notes[n.dataset.note] = n.value; sync(); }));
+  $("#copy").addEventListener("click", () => {
+    const out = $("#out");
+    if (!R.rater.trim()) { $("#copy-status").textContent = "Enter your name first so the file is labelled correctly."; $("#rater").focus(); return; }
+    if (done() < sample.length) { $("#copy-status").textContent = `${sample.length - done()} function(s) still have the default score. Move each slider at least once, then copy.`; return; }
+    const ok = () => { $("#copy-status").textContent = `Copied ${sample.length} ratings. Paste them into evaluation/expert_rankings/${file()}.json.`; };
+    const fail = () => { out.focus(); out.select(); $("#copy-status").textContent = "Copy is blocked here. The text is selected; press Ctrl+C."; };
+    try { navigator.clipboard.writeText(out.value).then(ok, fail); } catch { fail(); }
+  });
+}
+
+/* ── refactoring ── */
+const diffBlock = (t) => `<pre class="code">${String(t).split("\n").map((l) => { const c = l.startsWith("+++") || l.startsWith("---") ? "" : l.startsWith("+") ? "add" : l.startsWith("-") ? "del" : l.startsWith("@@") ? "hunk" : ""; return c ? `<span class="${c}">${esc(l)}</span>` : esc(l); }).join("\n")}</pre>`;
+function renderRefactoring() {
+  const view = $("#view-refactoring"), tb = D.testBaseline || {}, s = ref.summary;
+  const gate = `<svg class="chart" viewBox="0 0 1000 120" role="img" aria-label="CI gate">${["LLM patch", "Parses & signature kept", "Tests vs baseline", "Radon CC lower", "Ruff · duplication", "Commit to branch"].map((t, i) => `<g transform="translate(${i * 168} 30)"><rect width="148" height="56" rx="10" fill="var(--surface)" stroke="${i === 2 ? "var(--accent)" : "var(--line-2)"}" stroke-width="1.3"/><text x="74" y="25" text-anchor="middle" class="ink" style="font:700 12px var(--display)">${t}</text><text x="74" y="43" text-anchor="middle">${["Refactor agent", "AST check", `${tb.passed ?? "–"} must still pass`, "must decrease", "reported", "ai-refactoring/*"][i]}</text></g>${i < 5 ? `<path d="M${i * 168 + 150} 58H${i * 168 + 166}" stroke="var(--line-2)" stroke-width="1.6" marker-end="url(#ah2)"/>` : ""}`).join("")}<defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--line-2)"/></marker></defs><text x="500" y="112" text-anchor="middle">A failed gate feeds the failing tests back to the agent for one more attempt.</text></svg>`;
+  const baseline = tb.passed !== undefined ? `<div class="card"><div class="card-head"><div><h2>Test baseline on the unmodified snapshot</h2><span class="sub">Recorded once; a patch passes only if every one of these still passes.</span></div><span class="chip ok">${tb.passed} passed</span></div>
+    <div class="kv"><div>Passed</div><div class="num">${tb.passed}</div><div>Pre-existing failures</div><div>${(tb.failed_ids || []).map((f) => `<div class="mono" style="font-size:.78rem">${esc(f)}</div>`).join("") || "none"}</div><div>Duration</div><div class="num">${Math.round(tb.duration_s || 0)} s</div></div></div>` : "";
+  if (!s) { view.innerHTML = `<div class="card"><div class="card-head"><div><h2>CI validation gate</h2><span class="sub">How every LLM refactoring is judged.</span></div></div><div class="diagram">${gate}</div></div>${baseline}${empty("No refactoring experiment yet", "Phase 6 takes the top LLM-ranked functions, rewrites each one on its own branch and runs the gate above. It needs Phase 4 results first.", ["python run_refactoring.py --test-python targets/.venv-requests/Scripts/python", "python run_dashboard.py"])}`; return; }
+  view.innerHTML = `
+    <div class="kpis">${[["Success rate", pct(s.success_rate), `${s.succeeded} of ${s.attempted} branches`, "var(--ok)"], ["No test regressions", pct(s.test_pass_rate), "of attempted patches", "var(--llm)"], ["CC reduction", fmt(s.mean_complexity_reduction_target, 1), "per target function", "var(--accent)"], ["Incl. helpers", fmt(s.mean_complexity_reduction_block, 1), "whole replaced block", "var(--heur)"], ["Ruff Δ", fmt(s.mean_ruff_delta, 1), "per file · lower is better", "var(--static)"], ["Duplication Δ", fmt(s.mean_duplicate_delta, 1), "lines per file", "var(--cx)"]].map(([k, v, t, c]) => `<div class="kpi" style="--k:${c}"><span class="eyebrow">${k}</span><span class="v num">${v}</span><span class="s">${t}</span></div>`).join("")}</div>
+    <div class="card"><h2>CI validation gate</h2><div class="diagram">${gate}</div></div>
+    <div class="card">${(ref.results || []).map((r) => `<div style="display:flex;flex-direction:column;gap:10px;padding:14px 0;border-top:1px solid var(--line)">
+      <div class="card-head"><span class="fn" style="font-size:.95rem">${esc(r.function)}<small>${esc(r.file)} · ${esc(r.branch)}</small></span><span class="chip ${r.success ? "ok" : "bug"}">${r.success ? "passed gate" : "failed gate"}</span></div>
+      <div class="mini"><span>LLM # <b>${r.llm_rank}</b></span><span>CC <b>${r.before.complexity_target} → ${r.after ? r.after.complexity_target : "–"}</b></span>${r.tests ? `<span>tests <b>${r.tests.passed} / ${r.tests.failed} failed</b></span>` : ""}<span>new failures <b>${r.new_failures ? r.new_failures.length : "–"}</b></span><span>Ruff Δ <b>${fmt(r.ruff_delta)}</b></span><span>attempts <b>${r.attempts.length}</b></span></div>
+      <p class="sub prose">${esc(r.recommendation)}</p>${(D.diffs || {})[r.id] ? `<details><summary>Diff</summary>${diffBlock(D.diffs[r.id])}</details>` : ""}</div>`).join("")}</div>
+    ${baseline}`;
+}
+
+/* ── limitations ── */
+function renderLimits() {
+  const d = ev.defects || {};
+  const risks = [
+    ["HIGH", "Small number of positive labels", `Only ${positives.size} of ${items.length} candidates were bug-fixed after the cutoff, so Precision@K and AUC move a lot with one item and confidence intervals are wide.`, "Report bootstrap CIs and paired tests; add change-proneness and expert ratings as further ground truths; extendable to more repositories or an earlier cutoff."],
+    ["HIGH", "LLM experiment not yet executed", llmFailed ? `The last run returned 0/${runs.llm.total} rankings (${runs.llm.first_error})` : "Phase 4 results are required to answer the research question.", "Pipeline is complete and cached; a funded run fills every chart automatically. No LLM numbers are claimed until then."],
+    ["MEDIUM", "Keyword-based bug labels (SZZ-lite)", "Fix commits are found from commit and PR messages and mapped to changed lines; some fixes are missed and some labels are wrong.", "Exclude typo/docs/CI/typing commits and sweeping commits; keep fix SHAs for manual audit."],
+    ["MEDIUM", "Few expert raters", `${raters.length} rater(s) so far; ratings from 2–3 students are not a panel of maintainers.`, "Blind form, stratified sample, Kendall's W reported next to every expert metric."],
+    ["MEDIUM", "Single repository", `All results come from psf/${repo}, a mature, well-tested library; it may not generalise.`, "The pipeline is repository-agnostic (run_dataset.py --repo); a second target is the next step."],
+    ["LOW", "Name-based call graph", "Callers are counted by function name, so common names such as get or send are over-counted.", "Kept as one feature among many; documented in the prompt context."],
+    ["LOW", "Heuristic weights are arbitrary", "The context heuristic uses equal weights; it is a sanity baseline, not a tuned model.", "Shown only as a non-LLM reference point."],
+    ["LOW", "LLM non-determinism and cost", "Repeated runs can differ, and each full run costs API credits.", "Responses are cached on disk with dataset and prompt hashes, so the reported run is reproducible."],
+  ];
+  const works = [
+    [true, `Temporal split prevents label leakage: rankers never read the ${Object.keys(gt).length}-item ground-truth file.`],
+    [true, `Dataset built and audited: ${meta.functions_indexed} functions indexed, ${items.length} candidates, source readable for all.`],
+    [true, `RAG retrieval runs for all ${(D.retrievalDiagnostics || {}).queries || 0} items with ${((D.retrievalDiagnostics || {}).self_matches || []).length} self-matches.`],
+    [true, `Baselines measured end to end with bootstrap CIs (${d.n_items || 0} items).`],
+    [(D.testBaseline || {}).passed !== undefined, `Phase 6 test baseline recorded (${(D.testBaseline || {}).passed ?? "–"} passing tests).`],
+    [hasLLM, "LLM + RAG rankings for all candidates."],
+    [raters.length >= 2, "At least two independent expert raters."],
+    [!!ref.summary, "Measured refactoring experiment on real branches."],
+  ];
+  $("#view-limits").innerHTML = `
+    <div class="grid">
+      <div class="card span-5"><h2>What works · what is pending</h2><ul class="works">${works.map(([ok, t]) => `<li><span class="tick ${ok ? "y" : "n"}" style="${ok ? "" : "border-color:var(--line-2)"}">${ok ? "✓" : ""}</span><span>${t}</span></li>`).join("")}</ul></div>
+      <div class="card span-7"><h2>Assumptions</h2><ul class="works">
+        <li><span class="chip none">A1</span><span>A function that is bug-fixed soon after the cutoff carried debt worth fixing first.</span></li>
+        <li><span class="chip none">A2</span><span>Developer judgement on a stratified sample of ${sample.length} functions is a fair proxy for "should be fixed first".</span></li>
+        <li><span class="chip none">A3</span><span>Lower cyclomatic complexity with all previously passing tests still passing is a safe, measurable definition of a successful refactoring.</span></li>
+        <li><span class="chip none">A4</span><span>Context from the five years before the cutoff is representative of what a team would know when planning.</span></li>
+      </ul></div>
+    </div>
+    <div class="card"><h2>Threats to validity and failure analysis</h2>${risks.map(([sev, t, what, mit]) => `<div class="risk"><span><span class="chip ${sev}">${sev}</span></span><div><h4>${t}</h4><p class="sub">${esc(what)}</p></div><div><span class="eyebrow">Mitigation</span><p class="sub">${esc(mit)}</p></div></div>`).join("")}</div>`;
+}
+
+/* ── routing ── */
+const VIEWS = { overview: renderOverview, method: renderMethod, priorities: renderPriorities, evaluation: renderEvaluation, review: renderReview, refactoring: renderRefactoring, limits: renderLimits };
+function route() {
+  const name = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "overview";
+  $$("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === name)));
+  Object.keys(VIEWS).forEach((v) => { $("#view-" + v).hidden = v !== name; });
+  VIEWS[name]();
+  window.scrollTo(0, 0);
+}
+$$("nav.tabs button").forEach((b) => b.addEventListener("click", () => { location.hash = b.dataset.view; }));
+window.addEventListener("hashchange", route);
+route();
+})();
+</script>

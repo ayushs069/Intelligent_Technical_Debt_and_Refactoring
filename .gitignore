@@ -7,6 +7,7 @@ __pycache__/
 
 # Virtual Environment
 .venv/
+.venv-crewai/
 venv/
 ENV/
 env/
@@ -24,3 +25,12 @@ htmlcov/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Secrets
+.env
+
+# Research pipeline working files
+targets/
+data/llm_cache/
+data/*_test_baseline.json
+reports/*.html

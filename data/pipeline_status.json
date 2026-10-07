@@ -1,0 +1,17 @@
+{
+  "generated": "2026-10-07T17:20:52.255492+00:00",
+  "steps": [
+    {
+      "step": "Evaluation",
+      "returncode": 0
+    },
+    {
+      "step": "Offline dashboard",
+      "returncode": 0
+    },
+    {
+      "step": "Readiness audit",
+      "returncode": 0
+    }
+  ]
+}

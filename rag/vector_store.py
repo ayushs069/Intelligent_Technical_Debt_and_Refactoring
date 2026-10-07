@@ -4,7 +4,6 @@ Vector Store — Manages ChromaDB collections for storing and retrieving enriche
 
 from __future__ import annotations
 
-import json
 import os
 from typing import Any
 

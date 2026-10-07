@@ -63,7 +63,7 @@ def run_all(target_path: str) -> tuple[list[dict], str]:
 
     try:
         print(f"\n{'='*60}")
-        print(f"  Technical Debt Analyzer — Phase 1")
+        print("  Technical Debt Analyzer — Phase 1")
         print(f"  Repository : {repo_name}")
         print(f"  Target     : {os.path.abspath(actual_path)}")
         print(f"{'='*60}\n")

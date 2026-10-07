@@ -1,0 +1,35 @@
+# Copy to .github/workflows/techdebt.yml in your FORK of the target repository
+# (e.g. psf/requests) and push an ai-refactoring/* branch to run the same CI
+# gate on GitHub that run_refactoring.py runs locally.
+name: Tech Debt Refactoring CI
+
+on:
+  push:
+    branches: ["ai-refactoring/**"]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          pip install "pytest>=8" pytest-cov "pytest-httpbin==2.1.0" "httpbin~=0.10.0" trustme pysocks radon ruff
+          pip install -e .
+      - name: Run tests
+        run: pytest tests --tb=short -q
+      - name: Complexity of changed files (before vs after)
+        run: |
+          BASE=$(git merge-base HEAD origin/HEAD 2>/dev/null || git rev-list --max-parents=0 HEAD | tail -1)
+          for f in $(git diff --name-only "$BASE" HEAD -- '*.py'); do
+            echo "== $f (after)"; radon cc "$f" -s -n C || true
+          done
+      - name: Lint changed files (Ruff)
+        run: |
+          BASE=$(git merge-base HEAD origin/HEAD 2>/dev/null || git rev-list --max-parents=0 HEAD | tail -1)
+          git diff --name-only "$BASE" HEAD -- '*.py' | xargs -r ruff check --exit-zero --statistics

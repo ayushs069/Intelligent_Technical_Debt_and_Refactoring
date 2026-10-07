@@ -4,6 +4,27 @@
 
 ---
 
+## 0. Implementation status
+
+| Phase | Status | Where |
+|---|---|---|
+| 1 Static analysis | Done | `analyzer/`, `run_analysis.py` |
+| 2 Context enrichment | Done, plus function-level git history and `as_of` cutoff | `enricher/`, `run_enrichment.py` |
+| 3 RAG | Done | `rag/`, `run_rag_pipeline.py` |
+| Research dataset | Function-level items for `psf/requests` at 2024-01-01, ground truth from later commits | `dataset/`, `run_dataset.py` |
+| 4 LLM prioritisation | Implemented (Analysis → Priority → Refactor agents, RAG, no-context ablation); **needs ANTHROPIC_API_KEY to run** | `llm/`, `agents/`, `run_prioritisation.py` |
+| 5 Evaluation | Implemented; baseline numbers computed; **needs expert ratings + Phase 4 output** | `evaluation/`, `run_evaluation.py`, dashboard |
+| 6 Refactoring + CI | Implemented (branches, CI gate with retry, metrics); **needs Phase 4 output** | `refactoring/`, `run_refactoring.py`, `.github/workflows/` |
+
+Deviations from the original plan, and why:
+- **Unit of ranking = function**, not raw tool message: the plan's dataset schema (Section 4) is per function, and a refactoring targets a function.
+- **Temporal split**: context comes from history before a cutoff and the "known defect history" ground truth from after it. Without this the LLM would be scored on data it was shown.
+- **Native agent chain by default**: same three roles as Section 6, run directly on the Claude API with structured JSON output and caching; CrewAI is available via `--backend crewai`.
+- **jscpd** replaced by a built-in clone detector (`dataset/duplication.py`) to avoid a Node.js dependency.
+- **Branches are local**: `run_refactoring.py` creates `ai-refactoring/*` branches in the target clone; pushing to a fork with `refactoring/ci/target-techdebt.yml` is a manual step.
+
+---
+
 ## 1. Project overview
 
 Static-analysis tools (Radon, Pylint, Ruff) detect code problems but rank them by raw code metrics — complexity score, line count — with no knowledge of how critical a module is, how often it breaks, or how many other components depend on it.

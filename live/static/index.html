@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Debt Prioritiser Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: command bar → navy hero with the URL box → sticky 8-stage pipeline rail →
+   two columns: stage result cards (left) and a live console (right). Amber = project
+   accent, cobalt = LLM, green = finished, red = failure. */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --sunken: #edf0f4; --ink: #0e1626; --ink-2: #2b3546;
+  --muted: #5d687a; --line: #dde2e9; --line-2: #c9d0da;
+  --hero: #0c1828; --hero-2: #15294a; --hero-ink: #eaf0f8; --hero-muted: #93a3ba; --hero-line: #22344e;
+  --accent: #e3a33b; --accent-ink: #8a5a0b; --accent-soft: #fbefd9;
+  --llm: #2f6fed; --llm-soft: #e3ecfd; --static: #7a8597; --heur: #2a9d8f;
+  --high: #d64545; --high-soft: #fbe3e3; --med: #d98a1c; --med-soft: #fcefd9;
+  --low: #758197; --low-soft: #e9edf2; --ok: #1f9d6b; --ok-soft: #ddf3ea;
+  --code: #f6f8fb; --console: #0b1422; --console-ink: #c9d5e6;
+  --shadow: 0 1px 2px rgba(14, 22, 38, .05), 0 6px 24px rgba(14, 22, 38, .05);
+  --display: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a101b; --surface: #101827; --sunken: #0d1522; --ink: #e5ebf4; --ink-2: #c5cfdd;
+    --muted: #8b97aa; --line: #1d2839; --line-2: #2a3850; --hero: #0e1a2c; --hero-2: #17305a; --hero-line: #24364f;
+    --accent: #f0b455; --accent-ink: #f0b455; --accent-soft: #2e2414; --llm: #6e9bff; --llm-soft: #16244a;
+    --static: #8f9aad; --heur: #3dbaa9; --high: #f06b6b; --high-soft: #3a1c1f; --med: #f0a445; --med-soft: #33260f;
+    --low: #8b97aa; --low-soft: #1a2333; --ok: #3cc48d; --ok-soft: #12301f; --code: #0d1522; --console: #070c15;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .25); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a101b; --surface: #101827; --sunken: #0d1522; --ink: #e5ebf4; --ink-2: #c5cfdd;
+  --muted: #8b97aa; --line: #1d2839; --line-2: #2a3850; --hero: #0e1a2c; --hero-2: #17305a; --hero-line: #24364f;
+  --accent: #f0b455; --accent-ink: #f0b455; --accent-soft: #2e2414; --llm: #6e9bff; --llm-soft: #16244a;
+  --static: #8f9aad; --heur: #3dbaa9; --high: #f06b6b; --high-soft: #3a1c1f; --med: #f0a445; --med-soft: #33260f;
+  --low: #8b97aa; --low-soft: #1a2333; --ok: #3cc48d; --ok-soft: #12301f; --code: #0d1522; --console: #070c15;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .25); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); margin: 0; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--display); margin: 0; line-height: 1.12; letter-spacing: -.012em; text-wrap: balance; }
+h2 { font-size: 1.22rem; } h3 { font-size: 1rem; }
+p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: .84em; }
+.num { font-variant-numeric: tabular-nums; }
+.eyebrow { font: 600 .7rem/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); } .sub { font-size: .84rem; color: var(--muted); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+a { color: var(--llm); }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
+.bar-in { max-width: 1360px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 10px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.mark { width: 30px; height: 30px; flex: none; }
+.brand { display: flex; flex-direction: column; line-height: 1.15; }
+.brand b { font: 800 1.02rem var(--display); }
+.brand span { font-size: .76rem; color: var(--muted); }
+.links { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+.links a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: .88rem; padding: 7px 11px; border-radius: 8px; }
+.links a:hover { color: var(--ink); background: var(--sunken); }
+.links a.on { color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.icon-btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer; color: var(--ink-2); }
+
+main { max-width: 1360px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 24px 80px; display: flex; flex-direction: column; gap: 22px; }
+
+/* hero */
+.hero { position: relative; overflow: hidden; border-radius: 18px; color: var(--hero-ink); padding: clamp(24px, 4.5vw, 52px);
+  background: radial-gradient(900px 380px at 90% -20%, var(--hero-2), transparent 60%), var(--hero); display: flex; flex-direction: column; gap: 22px; }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .55;
+  background-image: linear-gradient(var(--hero-line) 1px, transparent 1px), linear-gradient(90deg, var(--hero-line) 1px, transparent 1px);
+  background-size: 44px 44px; mask-image: linear-gradient(100deg, transparent 40%, #000); -webkit-mask-image: linear-gradient(100deg, transparent 40%, #000); }
+.hero > * { position: relative; z-index: 1; }
+.hero .eyebrow { color: var(--accent); }
+.hero h1 { font-size: clamp(1.75rem, 3.8vw, 2.9rem); font-weight: 800; max-width: 22ch; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero .lede { color: var(--hero-muted); max-width: 64ch; }
+form.go { display: flex; flex-direction: column; gap: 12px; max-width: 920px; }
+.url-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.url { flex: 1 1 420px; display: flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, .06); border: 1px solid var(--hero-line);
+  border-radius: 12px; padding: 0 14px; min-width: 0; transition: border-color .15s, background .15s; }
+.url:focus-within { border-color: var(--accent); background: rgba(255, 255, 255, .09); }
+.url svg { flex: none; color: var(--hero-muted); }
+.url input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--hero-ink); font: 500 1.02rem var(--mono); padding: 15px 0; }
+.url input::placeholder { color: var(--hero-muted); opacity: .8; }
+.go-btn { background: var(--accent); color: #1b1203; border: 0; border-radius: 12px; padding: 0 26px; min-height: 54px; font: 700 1rem var(--display);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+.go-btn:hover { filter: brightness(1.05); }
+.go-btn[disabled] { opacity: .55; cursor: progress; }
+.opts { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: .85rem; color: var(--hero-muted); }
+.opts label { display: inline-flex; align-items: center; gap: 8px; }
+.opts select { background: var(--hero-2); color: var(--hero-ink); border: 1px solid var(--hero-line); border-radius: 8px; padding: 6px 9px; }
+.examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .82rem; color: var(--hero-muted); }
+.examples button { background: transparent; border: 1px solid var(--hero-line); color: var(--hero-ink); border-radius: 999px; padding: 4px 12px; font: 500 .78rem var(--mono); cursor: pointer; }
+.examples button:hover { border-color: var(--accent); color: var(--accent); }
+.safety { display: flex; gap: 8px; align-items: center; font-size: .8rem; color: var(--hero-muted); }
+.err-box { background: rgba(214, 69, 69, .16); border: 1px solid rgba(240, 107, 107, .5); color: #ffd9d9; border-radius: 10px; padding: 10px 14px; font-size: .9rem; }
+
+/* pipeline rail */
+.rail-wrap { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 55px); z-index: 15; }
+.rail { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 14px 18px; overflow-x: auto; }
+.rail-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.rail-head .repo { font: 600 .9rem var(--mono); }
+.timer { font: 600 .84rem var(--mono); color: var(--muted); }
+.steps { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); position: relative; min-width: 600px; }
+.steps::before { content: ""; position: absolute; left: 6%; right: 6%; top: 17px; height: 3px; background: var(--line); border-radius: 2px; }
+.steps .fill { position: absolute; left: 6%; top: 17px; height: 3px; background: linear-gradient(90deg, var(--ok), var(--accent)); border-radius: 2px; width: 0; transition: width .5s ease; }
+.step { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; position: relative; cursor: pointer; padding: 0 4px; background: none; border: 0; }
+.dot { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 2px solid var(--line-2);
+  font: 700 .82rem var(--display); color: var(--muted); position: relative; z-index: 1; transition: all .25s; }
+.step .lbl { font-size: .74rem; font-weight: 600; color: var(--muted); line-height: 1.25; overflow-wrap: anywhere; }
+.step .tm { font: 500 .68rem var(--mono); color: var(--muted); min-height: 1em; }
+.step.running .dot { border-color: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 5px var(--accent-soft); }
+.step.running .lbl { color: var(--ink); }
+.step.done .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
+.step.done .lbl, .step.skipped .lbl, .step.error .lbl { color: var(--ink-2); }
+.step.skipped .dot { border-style: dashed; color: var(--muted); }
+.step.error .dot { background: var(--high); border-color: var(--high); color: #fff; }
+.spin { width: 16px; height: 16px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+
+/* workspace */
+.work { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start; }
+@media (max-width: 1100px) { .work { grid-template-columns: 1fr; } }
+.cards { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; scroll-margin-top: 190px; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px 16px; flex-wrap: wrap; }
+.card-head .t { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.badge { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font: 800 .82rem var(--display); background: var(--sunken); color: var(--muted); flex: none; }
+.card.done .badge { background: var(--ok-soft); color: var(--ok); }
+.card.running .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.card.error .badge { background: var(--high-soft); color: var(--high); }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font: 600 .72rem/1.6 var(--body); white-space: nowrap; }
+.chip.HIGH { background: var(--high-soft); color: var(--high); } .chip.MEDIUM { background: var(--med-soft); color: var(--med); }
+.chip.LOW { background: var(--low-soft); color: var(--low); } .chip.none { background: var(--sunken); color: var(--muted); }
+.chip.ok { background: var(--ok-soft); color: var(--ok); } .chip.warn { background: var(--med-soft); color: var(--med); }
+.chip.llm { background: var(--llm-soft); color: var(--llm); } .chip.acc { background: var(--accent-soft); color: var(--accent-ink); }
+.chip.bad { background: var(--high-soft); color: var(--high); }
+.skel { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--sunken), var(--line), var(--sunken)); background-size: 200% 100%; animation: sh 1.4s infinite; }
+@keyframes sh { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.kpi { border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; display: flex; flex-direction: column; gap: 3px; background: var(--surface); min-width: 0; }
+.kpi .v { font: 700 1.45rem/1.05 var(--display); letter-spacing: -.02em; overflow-wrap: anywhere; }
+.kpi .v.sm { font: 600 .92rem/1.3 var(--mono); }
+.kpi .k { font-size: .7rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 18px; }
+.cols > div { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.hbars { display: flex; flex-direction: column; gap: 9px; }
+.hb { display: grid; grid-template-columns: minmax(0, 140px) minmax(0, 1fr) 46px; gap: 10px; align-items: center; font-size: .82rem; }
+.hb .lab { font: 500 .76rem var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb .track { height: 9px; background: var(--sunken); border-radius: 5px; overflow: hidden; }
+.hb .track b { display: block; height: 100%; border-radius: 5px; transition: width .6s cubic-bezier(.2, .7, .2, 1); }
+.hb .val { text-align: right; font: 500 .78rem var(--mono); }
+.list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+.list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); align-items: center; font-size: .84rem; }
+.list li:first-child { border-top: 0; }
+.list li[data-id] { cursor: pointer; } .list li[data-id]:hover .fn { color: var(--llm); }
+.fn { font: 500 .8rem var(--mono); overflow-wrap: anywhere; }
+.fn small { display: block; font-size: .7rem; color: var(--muted); }
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+svg.chart text { fill: var(--muted); font: 11px var(--body); }
+svg.chart .ink { fill: var(--ink); font-weight: 600; }
+svg.chart .gl { stroke: var(--line); }
+.histo { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: end; height: 130px; }
+.histo div { display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+.histo b { width: 100%; border-radius: 6px 6px 2px 2px; min-height: 3px; transition: height .6s cubic-bezier(.2, .7, .2, 1); }
+.histo span { font: 600 .74rem var(--mono); color: var(--muted); }
+.histo i { font: 600 .74rem var(--mono); font-style: normal; color: var(--ink); }
+.heat-wrap { overflow-x: auto; }
+table.heat { border-collapse: separate; border-spacing: 3px; width: 100%; min-width: 600px; font-size: .76rem; }
+table.heat th { font: 600 .64rem/1.2 var(--body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); padding: 4px; }
+table.heat th:first-child { text-align: left; }
+table.heat td { text-align: center; border-radius: 4px; padding: 6px 4px; font: 500 .76rem var(--mono); }
+table.heat td:first-child { text-align: left; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; cursor: pointer; padding-left: 0; }
+.llm-row { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.llm-row:first-child { border-top: 0; }
+.score { font: 800 1.5rem/1 var(--display); color: var(--llm); text-align: center; }
+.score small { display: block; font: 500 .62rem var(--body); color: var(--muted); letter-spacing: .06em; margin-top: 3px; }
+.llm-row p { font-size: .86rem; color: var(--ink-2); }
+@media (prefers-reduced-motion: no-preference) { .pop { animation: pop .35s cubic-bezier(.2, .7, .2, 1) both; } }
+@keyframes pop { from { transform: translateY(6px); opacity: .4; } to { transform: none; opacity: 1; } }
+.table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; max-height: 620px; }
+table.data { border-collapse: collapse; width: 100%; min-width: 860px; font-size: .84rem; }
+table.data td.fn-col { min-width: 220px; }
+.why { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-width: 260px; max-width: 420px; font-size: .8rem; color: var(--muted); line-height: 1.45; }
+table.data th, table.data td { padding: 9px 11px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+table.data th { font: 600 .66rem/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--sunken); position: sticky; top: 0; white-space: nowrap; }
+table.data td.r, table.data th.r { text-align: right; }
+table.data tbody tr { cursor: pointer; } table.data tbody tr:hover { background: var(--sunken); }
+tr.sev-HIGH td:first-child { box-shadow: inset 3px 0 0 var(--high); } tr.sev-MEDIUM td:first-child { box-shadow: inset 3px 0 0 var(--med); }
+tr.sev-LOW td:first-child { box-shadow: inset 3px 0 0 var(--low); }
+.callout { border: 1px solid var(--line); border-left: 4px solid var(--med); border-radius: 10px; padding: 12px 16px; background: var(--surface); display: flex; flex-direction: column; gap: 5px; }
+.callout.info { border-left-color: var(--llm); } .callout.bad { border-left-color: var(--high); } .callout.ok { border-left-color: var(--ok); }
+
+/* console */
+.console { position: sticky; top: 196px; background: var(--console); color: var(--console-ink); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); }
+@media (max-width: 1100px) { .console { position: static; } }
+.console-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid rgba(255, 255, 255, .08); font: 600 .76rem var(--mono); color: #8fa2bf; }
+.console-head i { width: 9px; height: 9px; border-radius: 50%; background: #2b3b55; display: inline-block; }
+.console-head i.live { background: var(--accent); box-shadow: 0 0 0 3px rgba(227, 163, 59, .25); }
+.console pre { margin: 0; padding: 12px 14px; height: 440px; overflow: auto; font: 11.5px/1.6 var(--mono); white-space: pre-wrap; word-break: break-word; }
+.console .t { color: #5f7290; } .console .s { color: var(--accent); } .console .ok { color: #46d39a; } .console .er { color: #ff8b8b; }
+
+/* drawer */
+.scrim { position: fixed; inset: 0; background: rgba(5, 10, 20, .45); z-index: 40; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(620px, 100%); background: var(--surface); z-index: 41; box-shadow: -10px 0 40px rgba(0, 0, 0, .25);
+  display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.drawer-head { display: flex; justify-content: space-between; gap: 12px; padding: 18px 22px; border-bottom: 1px solid var(--line); align-items: flex-start; }
+.drawer-body { overflow: auto; padding: 18px 22px 30px; display: flex; flex-direction: column; gap: 16px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.fact { background: var(--surface); padding: 8px 10px; display: flex; flex-direction: column; }
+.fact .k { font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.fact .v { font: 500 .9rem var(--mono); }
+pre.code { margin: 0; background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; font: 12px/1.55 var(--mono); tab-size: 4; }
+pre.code .ln { color: var(--muted); opacity: .7; user-select: none; display: inline-block; width: 3.4em; }
+pre.code .kw { color: var(--llm); } pre.code .st { color: var(--ok); } pre.code .cm { color: var(--muted); font-style: italic; }
+.empty-state { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+.empty-state div { border: 1px dashed var(--line-2); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px; background: var(--surface); }
+.empty-state b { font-family: var(--display); }
+footer { font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+</head>
+<body>
+<header class="bar"><div class="bar-in">
+  <svg class="mark" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="8" fill="var(--hero)"/><rect x="7" y="17" width="4" height="7" rx="1" fill="var(--static)"/><rect x="13" y="12" width="4" height="12" rx="1" fill="var(--llm)"/><rect x="19" y="6" width="4" height="18" rx="1" fill="var(--accent)"/></svg>
+  <div class="brand"><b>Intelligent Technical Debt &amp; Refactoring</b><span>Live repository analysis</span></div>
+  <nav class="links" aria-label="Pages"><a href="/" class="on">Live analysis</a><a href="/research" id="research-link">Research results</a>
+    <button class="icon-btn" id="theme" aria-label="Switch colour theme" title="Switch colour theme"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></nav>
+</div></header>
+
+<main>
+  <section class="hero">
+    <span class="eyebrow">Static analysis + repository context + RAG + LLM</span>
+    <h1>Paste a repository. Watch its <em>technical debt</em> get prioritised.</h1>
+    <p class="lede">Every stage of the pipeline runs live: clone, four static analysers, a function-level index, git history mined per function, debt candidates, retrieval of similar debt, and an LLM review that explains what to fix first and how.</p>
+    <form class="go" id="go" novalidate>
+      <div class="url-row">
+        <label class="url" for="url"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.08 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>
+          <input id="url" name="url" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://github.com/owner/repository" aria-label="Repository URL"></label>
+        <button class="go-btn" id="go-btn" type="submit"><span>Analyse repository</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+      <div class="opts">
+        <label for="provider">LLM review <select id="provider"><option value="">Off</option></select></label>
+        <label for="shortlist">Shortlist <select id="shortlist"><option>5</option><option selected>10</option><option>15</option></select></label>
+        <label for="years">History window <select id="years"><option value="1">1 year</option><option value="2">2 years</option><option value="3" selected>3 years</option><option value="5">5 years</option></select></label>
+      </div>
+      <div class="examples"><span>Try:</span><button type="button" data-ex="pallets/itsdangerous">pallets/itsdangerous</button><button type="button" data-ex="pallets/click">pallets/click</button><button type="button" data-ex="psf/requests">psf/requests</button><button type="button" data-ex="pallets/markupsafe">pallets/markupsafe</button></div>
+      <div class="safety"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>Read-only: the repository is analysed statically and its code is never executed.</div>
+      <div class="err-box" id="form-err" hidden></div>
+    </form>
+  </section>
+
+  <div class="rail-wrap" id="rail-wrap" hidden>
+    <div class="rail">
+      <div class="rail-head"><span class="repo" id="rail-repo"></span><span class="timer" id="timer">0.0 s</span></div>
+      <div class="steps" id="steps"><div class="fill" id="fill"></div></div>
+    </div>
+  </div>
+
+  <div class="empty-state" id="intro">
+    <div><span class="eyebrow">1 · Static</span><b>Radon, Ruff, Pylint, Vulture</b><span class="sub">Complexity, maintainability, lint, dead code and a clone detector, attributed to each function.</span></div>
+    <div><span class="eyebrow">2 · Context</span><b>What tools cannot see</b><span class="sub">How often each function changed, how many of those changes were bug fixes, and how many places call it.</span></div>
+    <div><span class="eyebrow">3 · RAG</span><b>Similar debt, retrieved</b><span class="sub">ChromaDB and MiniLM find the five most similar debt items to calibrate every judgement.</span></div>
+    <div><span class="eyebrow">4 · LLM</span><b>Explained priorities</b><span class="sub">An LLM reviews the shortlist and says what to fix first, why, and how to refactor it.</span></div>
+  </div>
+
+  <div class="work" id="work" hidden>
+    <div class="cards" id="cards"></div>
+    <aside class="console" aria-label="Live log"><div class="console-head"><i id="live-dot"></i><span>pipeline.log</span></div><pre id="log"></pre></aside>
+  </div>
+
+  <footer><span>Runs locally on your machine · results stay in <code>targets/live/</code></span><span>Research results for the evaluated dataset are under <a href="/research">Research results</a>.</span></footer>
+</main>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-modal="true" role="dialog" aria-labelledby="dr-title">
+  <div class="drawer-head"><div style="min-width:0"><span class="eyebrow" id="dr-file"></span><h2 id="dr-title" class="mono" style="font:600 1rem var(--mono);overflow-wrap:anywhere"></h2></div><button class="icon-btn" id="dr-close" aria-label="Close details">✕</button></div>
+  <div class="drawer-body" id="dr-body"></div>
+</aside>
+
+<script>
+(() => {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const store = { get(k, f) { try { const v = localStorage.getItem(k); return v === null ? f : JSON.parse(v); } catch { return f; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* unavailable */ } }, del(k) { try { localStorage.removeItem(k); } catch { /* unavailable */ } } };
+
+const t0 = store.get("tdl.theme", null); if (t0) document.documentElement.dataset.theme = t0;
+$("#theme").addEventListener("click", () => { const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; document.documentElement.dataset.theme = dark ? "light" : "dark"; store.set("tdl.theme", document.documentElement.dataset.theme); });
+
+const STAGE_INFO = {
+  clone: ["Clone repository", "Shallow clone of the history window; repository facts."],
+  static: ["Static analysis", "Phase 1 · Radon, Ruff, Pylint and Vulture findings."],
+  index: ["Function index", "Every function with complexity, smells, duplication and callers."],
+  context: ["Repository context", "Phase 2 · git history mapped to files and functions."],
+  items: ["Debt candidates", "Functions carrying at least one debt signal, scored two ways."],
+  rag: ["RAG retrieval", "Phase 3 · ChromaDB + MiniLM neighbours for each candidate."],
+  llm: ["LLM agents", "Phase 4 · explained priority and refactoring action."],
+  report: ["Fix-first report", "Final ranking: LLM-reviewed shortlist first, then the context ranking."],
+};
+const ORDER = Object.keys(STAGE_INFO);
+let S = null, es = null, tick = null, replaying = false;
+
+/* ── config ── */
+fetch("/api/config").then((r) => r.json()).then((c) => {
+  const sel = $("#provider");
+  c.providers.forEach((p, i) => { const o = document.createElement("option"); o.value = p.id; o.textContent = p.label; sel.appendChild(o); if (i === 0) sel.value = p.id; });
+  if (!c.research) $("#research-link").hidden = true;
+}).catch(() => {});
+
+$$(".examples [data-ex]").forEach((b) => b.addEventListener("click", () => { $("#url").value = `https://github.com/${b.dataset.ex}`; $("#url").focus(); }));
+
+$("#go").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const url = $("#url").value.trim(), err = $("#form-err");
+  err.hidden = true;
+  if (!url) { err.textContent = "Paste a repository URL first, for example https://github.com/pallets/click"; err.hidden = false; $("#url").focus(); return; }
+  $("#go-btn").disabled = true;
+  try {
+    const res = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, provider: $("#provider").value, shortlist: Number($("#shortlist").value), history_years: Number($("#years").value) }) });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || "Could not start the analysis.");
+    store.set("tdl.job", body.job);
+    attach(body.job);
+  } catch (ex) { err.textContent = ex.message; err.hidden = false; $("#go-btn").disabled = false; }
+});
+
+/* ── job lifecycle ── */
+function reset(url) {
+  S = { url, stages: Object.fromEntries(ORDER.map((k) => [k, { status: "pending" }])), items: {}, llm: {}, neighbours: {}, started: Date.now(), done: false };
+  $("#intro").hidden = true; $("#work").hidden = false; $("#rail-wrap").hidden = false;
+  $("#rail-repo").textContent = url.replace(/^https:\/\//, "").replace(/\.git$/, "");
+  $("#log").textContent = "";
+  $("#steps").innerHTML = `<div class="fill" id="fill"></div>` + ORDER.map((k, i) => `<button class="step" data-k="${k}" type="button"><span class="dot">${i + 1}</span><span class="lbl">${STAGE_INFO[k][0]}</span><span class="tm"></span></button>`).join("");
+  $$("#steps .step").forEach((b) => b.addEventListener("click", () => { const c = $("#card-" + b.dataset.k); if (c) c.scrollIntoView({ block: "start" }); }));
+  $("#cards").innerHTML = ORDER.map((k, i) => `<section class="card" id="card-${k}"><div class="card-head"><div class="t"><span class="badge">${i + 1}</span><div><h2>${STAGE_INFO[k][0]}</h2><span class="sub">${STAGE_INFO[k][1]}</span></div></div><span class="chip none" data-st>waiting</span></div><div data-body><div class="skel" style="width:60%"></div><div class="skel" style="width:85%;margin-top:8px"></div></div></section>`).join("");
+  clearInterval(tick); tick = setInterval(() => { if (!S.done) $("#timer").textContent = `${((Date.now() - S.started) / 1000).toFixed(1)} s`; }, 100);
+  $("#live-dot").classList.add("live");
+}
+function attach(job) {
+  if (es) es.close();
+  es = new EventSource(`/api/jobs/${job}/events`);
+  es.onmessage = (m) => handle(JSON.parse(m.data));
+  es.addEventListener("end", () => { es.close(); });
+  es.onerror = () => { if (S && S.done) es.close(); };
+}
+function log(text, cls = "", t) { const pre = $("#log"); const time = t !== undefined ? t.toFixed(1).padStart(6) : ""; pre.insertAdjacentHTML("beforeend", `<span class="t">${time}s</span> <span class="${cls}">${esc(text)}</span>\n`); pre.scrollTop = pre.scrollHeight; }
+
+function handle(ev) {
+  if (ev.type === "start") { reset(ev.url); S.started = Date.now() - ev.t * 1000; log(`analysing ${ev.url}${ev.llm ? ` · LLM: ${ev.llm}` : " · LLM off"}`, "s", ev.t); return; }
+  if (!S) return;
+  if (ev.type === "log") log(`[${ev.stage}] ${ev.text}`, "", ev.t);
+  if (ev.type === "stage") stageEvent(ev);
+  if (ev.type === "llm_item") llmItem(ev);
+  if (ev.type === "done") { finish(true, ev.t); log(`finished in ${ev.t.toFixed(1)} s`, "ok", ev.t); }
+  if (ev.type === "failed") { finish(false, ev.t); log(ev.message, "er", ev.t); failBanner(ev.message); }
+}
+function finish(ok, t) { S.done = true; clearInterval(tick); if (t !== undefined) $("#timer").textContent = `${t.toFixed(1)} s`; $("#live-dot").classList.remove("live"); $("#go-btn").disabled = false; }
+function failBanner(msg) { const running = ORDER.find((k) => S.stages[k].status === "running" || S.stages[k].status === "error") || "clone"; body(running, `<div class="callout bad"><b>Stopped</b><span>${esc(msg)}</span></div>`); }
+
+function stageEvent(ev) {
+  const k = ev.stage; S.stages[k] = { status: ev.status, elapsed: ev.elapsed, message: ev.message, data: ev.data };
+  const step = $(`#steps .step[data-k="${k}"]`), card = $("#card-" + k);
+  step.className = `step ${ev.status}`;
+  const i = ORDER.indexOf(k) + 1;
+  step.querySelector(".dot").innerHTML = ev.status === "running" ? `<span class="spin"></span>` : ev.status === "done" ? "✓" : ev.status === "error" ? "!" : ev.status === "skipped" ? "–" : i;
+  step.querySelector(".tm").textContent = ev.elapsed !== undefined ? `${ev.elapsed}s` : "";
+  card.className = `card ${ev.status}`;
+  const chip = card.querySelector("[data-st]");
+  chip.className = `chip ${{ running: "acc", done: "ok", skipped: "warn", error: "bad" }[ev.status] || "none"}`;
+  chip.textContent = { running: "running…", done: `done · ${ev.elapsed}s`, skipped: "skipped", error: "error" }[ev.status] || ev.status;
+  const doneCount = ORDER.filter((x) => ["done", "skipped", "error"].includes(S.stages[x].status)).length;
+  $("#fill").style.width = `${Math.min(88, (doneCount / (ORDER.length - 1)) * 88)}%`;
+  if (ev.status === "running") { log(`▶ ${STAGE_INFO[k][0]}`, "s", ev.t); if (k === "llm") body("llm", `<div class="sub" data-progress>Waiting for the first review…</div><div id="llm-list"></div>`); return; }
+  if (ev.status === "done") log(`✓ ${STAGE_INFO[k][0]} (${ev.elapsed}s)`, "ok", ev.t);
+  if (ev.status === "skipped") log(`– ${STAGE_INFO[k][0]} skipped: ${ev.message}`, "", ev.t);
+  if (ev.status === "error") log(`✗ ${STAGE_INFO[k][0]}: ${ev.message}`, "er", ev.t);
+  const R = RENDER[k]; if (R) R(ev);
+}
+const body = (k, html) => { const b = $(`#card-${k} [data-body]`); b.innerHTML = html; b.classList.add("pop"); bindIds(b); };
+const kpis = (rows) => `<div class="kpis">${rows.map(([k, v, sm]) => `<div class="kpi"><span class="k">${k}</span><span class="v num ${sm ? "sm" : ""}">${v}</span></div>`).join("")}</div>`;
+const bars = (rows, color = "var(--accent)") => { const mx = Math.max(1, ...rows.map((r) => r[1])); return `<div class="hbars">${rows.map(([l, v, c, title]) => `<div class="hb"><span class="lab" title="${esc(title || l)}">${esc(l)}</span><span class="track"><b style="width:${(v / mx * 100).toFixed(1)}%;background:${c || color}"></b></span><span class="val">${v}</span></div>`).join("")}</div>`; };
+const fnLabel = (id) => { const [f, q] = String(id).split("::"); return `<span class="fn">${esc(q || id)}<small>${esc(f)}</small></span>`; };
+const bindIds = (root) => $$("[data-id]", root).forEach((n) => n.addEventListener("click", () => openItem(n.dataset.id)));
+const skippedNote = (ev, extra = "") => `<div class="callout${ev.status === "error" ? " bad" : ""}"><b>${ev.status === "error" ? "Stage failed" : "Skipped"}</b><span>${esc(ev.message)}</span>${extra}</div>`;
+
+const RENDER = {
+  clone(ev) { const d = ev.data;
+    body("clone", `${kpis([["Repository", `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.repo)}</a>`, 1], ["Commits in window", d.commits], ["Authors", d.authors], ["Python files", d.python_files], ["Python lines", d.python_loc.toLocaleString()], ["Source package", esc(d.source_dir), 1]])}
+      <div class="sub">Branch <span class="mono">${esc(d.branch)}</span> at <span class="mono">${esc(d.head)}</span> (${esc(d.head_date)}) — “${esc(d.head_subject)}”. History window: ${d.history_years} year(s).${d.tests_dir ? ` Tests found in <span class="mono">${esc(d.tests_dir)}</span> (used only to count references, never executed).` : ""}</div>`); },
+  static(ev) { const d = ev.data, tc = { radon: "var(--accent)", ruff: "var(--heur)", pylint: "var(--static)", vulture: "var(--llm)" };
+    body("static", `${kpis([["Findings", d.total], ...Object.entries(d.by_severity).map(([k, v]) => [`${k.toLowerCase()} severity`, v])])}
+      <div class="cols"><div><span class="eyebrow">By tool</span>${bars(Object.entries(d.by_tool).map(([t, v]) => [t, v, tc[t]]))}</div>
+      <div><span class="eyebrow">By type</span>${bars(Object.entries(d.by_type).sort((a, b) => b[1] - a[1]).map(([t, v]) => [t.replace("_", " "), v]))}</div></div>
+      ${d.worst.length ? `<div><span class="eyebrow">Highest-scoring findings</span><ul class="list">${d.worst.map((w) => `<li><span class="fn">${esc(w.message)}<small>${esc(w.file)}:${w.line} · ${esc(w.tool)}</small></span><span class="chip acc">${w.score}</span></li>`).join("")}</ul></div>` : ""}
+      ${d.notes.map((n) => `<div class="callout"><span>${esc(n)}</span></div>`).join("")}`); },
+  index(ev) { const d = ev.data, mx = Math.max(1, ...Object.values(d.complexity_ranks)), rc = { A: "var(--ok)", B: "var(--heur)", C: "var(--accent)", D: "var(--med)", E: "var(--high)", F: "var(--high)" };
+    body("index", `${kpis([["Functions", d.functions], ["With lint/refactor smells", d.with_smells], ["Duplicated lines", d.duplicated_lines], ["Dead functions", d.dead_code]])}
+      <div class="cols"><div><span class="eyebrow">Cyclomatic complexity rank (Radon)</span><div class="histo">${Object.entries(d.complexity_ranks).map(([r, v]) => `<div><i>${v}</i><b style="height:${(v / mx * 100).toFixed(0)}%;background:${rc[r]}"></b><span>${r}</span></div>`).join("")}</div><span class="sub">A = simple (1–5) · C = moderate (11–20) · F = untestable (41+)</span></div>
+      <div><span class="eyebrow">Most complex functions</span><ul class="list">${d.most_complex.map((f) => `<li>${fnLabel(f.id)}<span class="chip ${f.complexity > 20 ? "bad" : f.complexity > 10 ? "warn" : "none"}">cc ${f.complexity} · ${f.loc} lines</span></li>`).join("")}</ul></div></div>`); },
+  context(ev) { const d = ev.data;
+    body("context", `${kpis([["Files with history", d.files_with_history], ["Function changes", d.function_changes], ["Bug-fix commits mapped", d.fix_commits_mapped], ["Functions with past fixes", d.functions_with_fixes]])}
+      <div class="cols"><div><span class="eyebrow">Most changed files</span>${d.churn.length ? bars(d.churn.map((c) => [c.file.split("/").slice(-2).join("/"), c.commits, c.defects ? "var(--high)" : "var(--heur)", c.file])) : `<span class="sub">No commits in the window.</span>`}</div>
+      <div><span class="eyebrow">Hot functions · changes / fixes</span>${d.hot_functions.length ? `<ul class="list">${d.hot_functions.map((f) => `<li>${fnLabel(f.id)}<span class="mono" style="font-size:.78rem">${f.commits} / <span style="color:var(--high)">${f.fixes}</span></span></li>`).join("")}</ul>` : `<span class="sub">No function-level changes found.</span>`}</div>
+      <div><span class="eyebrow">Most called</span><ul class="list">${d.most_called.map((f) => `<li>${fnLabel(f.id)}<span class="mono" style="font-size:.78rem">${f.callers} calls</span></li>`).join("")}</ul></div></div>
+      <div class="callout info"><b>Coverage</b><span>${esc(d.coverage)}. The LLM is told coverage is unknown rather than shown a false zero.</span></div>`); },
+  items(ev) { const d = ev.data; d.items.forEach((x) => { S.items[x.id] = x; });
+    const top = [...d.items].sort((a, b) => a.context_rank - b.context_rank).slice(0, 12);
+    const F = [["CC", (x) => x.complexity], ["Lines", (x) => x.loc], ["Smells", (x) => x.code_smells], ["Dup", (x) => x.duplicate_lines], ["Callers", (x) => x.callers], ["Changes", (x) => x.func_commits], ["Fixes", (x) => x.func_fix_commits]];
+    const mx = F.map(([, f]) => Math.max(1, ...d.items.map(f)));
+    body("items", `${kpis([["Debt candidates", `${d.candidates}<span class="muted" style="font-size:.9rem"> / ${d.functions}</span>`], ["Top by static score", esc((d.items[0] || {}).function || "–"), 1], ["Top by context", esc((top[0] || {}).function || "–"), 1]])}
+      <div class="cols"><div><span class="eyebrow">Complexity vs static score · colour = context rank</span>${scatter(d.items)}</div></div>
+      <div><span class="eyebrow">Debt fingerprint · top ${top.length} by context score</span><div class="heat-wrap"><table class="heat"><thead><tr><th>Function</th>${F.map(([l]) => `<th>${l}</th>`).join("")}<th>Static</th></tr></thead><tbody>${top.map((x) => `<tr><td data-id="${esc(x.id)}" title="${esc(x.id)}"><span class="muted">${x.context_rank}</span>&nbsp; ${esc(x.function)}</td>${F.map(([, f], i) => { const a = Math.min(1, f(x) / mx[i]); return `<td style="background:color-mix(in srgb, var(--accent) ${Math.round(8 + a * 82)}%, var(--surface));${a > .55 ? "color:var(--hero)" : ""}">${f(x)}</td>`; }).join("")}<td style="background:var(--sunken)">${x.static_score}</td></tr>`).join("")}</tbody></table></div></div>`); },
+  rag(ev) { if (ev.status !== "done") return body("rag", skippedNote(ev)); const d = ev.data; S.neighbours = d.neighbours || {};
+    const firstId = Object.keys(S.neighbours)[0], nb = S.neighbours[firstId] || [];
+    body("rag", `${kpis([["Indexed", d.indexed], ["Queries", d.queries], ["Neighbours each", 5], ["Embedding", esc(d.embedding_model), 1], ["Store", esc(d.store), 1]])}
+      ${firstId ? `<div><span class="eyebrow">Example · what the LLM sees next to <span class="mono" style="text-transform:none;letter-spacing:0">${esc(firstId.split("::")[1])}</span></span>${bars(nb.map((n) => [n.id.split("::")[1] || n.id, +(1 - n.distance).toFixed(3), "var(--llm)", n.id]))}<span class="sub">Bar = similarity (1 − cosine distance). The item itself is excluded, so the LLM sees comparable debt, not a copy of the question.</span></div>` : ""}`); },
+  llm(ev) { if (ev.status !== "done") return body("llm", skippedNote(ev, `<span class="sub">Choose a provider with credits under “LLM review” and run again. Everything else in this report is still valid without it.</span>`)); const d = ev.data;
+    Object.entries(d.results).forEach(([id, r]) => { S.llm[id] = r; });
+    const list = $("#llm-list"); if (list) { const head = `<div class="sub">${esc(d.model)} reviewed ${d.reviewed} candidate(s)${d.failed ? `, ${d.failed} failed` : ""}.</div>`; list.insertAdjacentHTML("beforebegin", head); const w = $("#card-llm [data-body] > .sub[data-progress]"); if (w) w.remove(); }
+    else body("llm", `<div id="llm-list"></div>`); renderLLMList(); },
+  report(ev) { const d = ev.data, final = d.final, s = d.summary;
+    body("report", `${kpis([["Fix first", esc((final[0] || {}).id.split("::")[1] || "–"), 1], ["Candidates ranked", final.length], ["LLM-reviewed", s.llm_reviewed], ["Overlap with static top 10", `${s.agreement_top10}/10`]])}
+      ${s.llm_reviewed ? "" : `<div class="callout info"><b>Ranked without the LLM</b><span>No LLM review in this run, so the order comes from the context heuristic (static score + callers + history).</span></div>`}
+      <div class="table-wrap"><table class="data"><thead><tr><th class="r">#</th><th>Function</th><th>Priority</th><th class="r">CC</th><th class="r">Callers</th><th class="r">Changes</th><th class="r">Fixes</th><th>Why</th></tr></thead><tbody>${final.map((r) => { const x = S.items[r.id] || {}; return `<tr data-id="${esc(r.id)}" class="${r.priority ? "sev-" + r.priority : ""}"><td class="r num">${r.rank}</td><td class="fn-col">${fnLabel(r.id)}</td><td>${r.priority ? `<span class="chip ${r.priority}">${r.priority} ${r.priority_score}</span>` : `<span class="chip none">context #${x.context_rank ?? "–"}</span>`}</td><td class="r num">${x.complexity ?? ""}</td><td class="r num">${x.callers ?? ""}</td><td class="r num">${x.func_commits ?? ""}</td><td class="r num">${x.func_fix_commits ?? ""}</td><td><div class="why" title="${esc(r.reason || "")}">${esc(r.reason || x.tool_messages?.[0] || "")}</div></td></tr>`; }).join("")}</tbody></table></div>`);
+    if (!replaying) $("#card-report").scrollIntoView({ block: "start" }); },
+};
+
+function llmItem(ev) {
+  S.llm[ev.id] = ev.result;
+  const chip = $("#card-llm [data-st]"); chip.textContent = `reviewing ${ev.done}/${ev.total}`;
+  const w = $("#card-llm [data-body] > .sub[data-progress]"); if (w) w.textContent = `Reviews arrive as each one finishes (${ev.done}/${ev.total}).`;
+  renderLLMList();
+  log(`[llm] ${ev.id.split("::")[1]} → ${ev.result.priority} ${ev.result.priority_score}`, "", ev.t);
+}
+function renderLLMList() {
+  const list = $("#llm-list"); if (!list) return;
+  const rows = Object.entries(S.llm).sort((a, b) => b[1].priority_score - a[1].priority_score);
+  list.innerHTML = rows.map(([id, r]) => `<div class="llm-row pop" data-id="${esc(id)}"><div class="score">${r.priority_score}<small>/ 100</small></div><div style="display:flex;flex-direction:column;gap:6px;min-width:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${fnLabel(id)}<span class="chip ${r.priority}">${r.priority}</span></div><p>${esc(r.reason)}</p><p class="sub"><b style="color:var(--ink)">Refactor:</b> ${esc(r.action)}</p></div></div>`).join("");
+  bindIds(list);
+}
+
+function scatter(items) {
+  const W = 640, H = 300, m = { l: 42, r: 14, t: 12, b: 38 };
+  const maxX = Math.ceil(Math.max(15, ...items.map((x) => x.complexity)) / 5) * 5, n = items.length;
+  const xs = (v) => m.l + (v / maxX) * (W - m.l - m.r), ys = (v) => H - m.b - (v / 10) * (H - m.t - m.b);
+  let g = ""; for (let t = 0; t <= 10; t += 2) g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${ys(t)}" y2="${ys(t)}"/><text x="${m.l - 8}" y="${ys(t) + 4}" text-anchor="end">${t}</text>`;
+  for (let t = 0; t <= maxX; t += maxX > 30 ? 10 : 5) g += `<text x="${xs(t)}" y="${H - m.b + 17}" text-anchor="middle">${t}</text>`;
+  g += `<text x="${(W + m.l) / 2}" y="${H - 4}" text-anchor="middle">Cyclomatic complexity</text><text transform="translate(11 ${(H - m.b + m.t) / 2}) rotate(-90)" text-anchor="middle">Static score</text>`;
+  const dots = [...items].sort((a, b) => b.context_rank - a.context_rank).map((x) => { const heat = 1 - (x.context_rank - 1) / Math.max(1, n - 1); return `<circle cx="${xs(x.complexity).toFixed(1)}" cy="${ys(x.static_score).toFixed(1)}" r="${(3.5 + Math.sqrt(x.loc) / 2.3).toFixed(1)}" fill="color-mix(in srgb, var(--accent) ${Math.round(15 + heat * 85)}%, var(--llm))" fill-opacity=".75" stroke="var(--surface)" data-id="${esc(x.id)}" style="cursor:pointer"><title>${esc(x.id)} — cc ${x.complexity}, static ${x.static_score}, context #${x.context_rank}</title></circle>`; }).join("");
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Complexity versus static score">${g}${dots}</svg>`;
+}
+
+/* ── detail drawer ── */
+const PY_KW = /\b(def|return|if|elif|else|for|while|in|not|and|or|is|None|True|False|try|except|finally|raise|with|as|import|from|class|lambda|yield|pass|break|continue|self)\b/g;
+function hl(line) { let ci = -1, q = null; for (let i = 0; i < line.length; i++) { const c = line[i]; if (q) { if (c === q) q = null; } else if (c === '"' || c === "'") q = c; else if (c === "#") { ci = i; break; } }
+  const code = ci >= 0 ? line.slice(0, ci) : line, cm = ci >= 0 ? line.slice(ci) : "";
+  return code.split(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/).map((p, i) => i % 2 ? `<span class="st">${esc(p)}</span>` : esc(p).replace(PY_KW, '<span class="kw">$1</span>')).join("") + (cm ? `<span class="cm">${esc(cm)}</span>` : ""); }
+function openItem(id) {
+  const x = S && S.items[id]; if (!x) return;
+  const r = S.llm[id], nb = S.neighbours[id] || [];
+  $("#dr-file").textContent = `${x.file} · line ${x.line}`; $("#dr-title").textContent = x.function;
+  const facts = [["Complexity", x.complexity], ["Lines", x.loc], ["Params", x.params], ["Static score", x.static_score], ["Static rank", `#${x.static_rank}`], ["Context rank", `#${x.context_rank}`], ["Callers", x.callers], ["Test refs", x.test_references], ["Changes", x.func_commits], ["Bug fixes", x.func_fix_commits], ["Duplicated", x.duplicate_lines], ["File MI", x.maintainability_index]];
+  const start = (x.start_line || x.line);
+  $("#dr-body").innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${r ? `<span class="chip ${r.priority}">${r.priority} · ${r.priority_score}/100</span>` : `<span class="chip none">not LLM-reviewed</span>`}<span class="chip none">${x.is_private ? "private helper" : "public API"}</span>${x.dead_code ? `<span class="chip warn">dead code</span>` : ""}</div>
+    ${r ? `<div class="callout info"><b>Why it matters</b><span>${esc(r.reason)}</span><span><b>Refactor:</b> ${esc(r.action)}</span></div>` : ""}
+    <div class="facts">${facts.map(([k, v]) => `<div class="fact"><span class="k">${k}</span><span class="v num">${esc(v)}</span></div>`).join("")}</div>
+    ${x.tool_messages && x.tool_messages.length ? `<div><span class="eyebrow">Tool findings</span><ul class="list">${x.tool_messages.map((m) => `<li><span class="fn">${esc(m)}</span><span></span></li>`).join("")}</ul></div>` : ""}
+    ${nb.length ? `<div><span class="eyebrow">RAG neighbours</span><ul class="list">${nb.map((n) => `<li data-id="${esc(n.id)}">${fnLabel(n.id)}<span class="mono sub">d ${n.distance.toFixed(3)}</span></li>`).join("")}</ul></div>` : ""}
+    ${x.docstring ? `<p class="sub">“${esc(x.docstring)}”</p>` : ""}
+    <div><span class="eyebrow">Source</span><pre class="code">${String(x.source || "").split("\n").map((l, i) => `<span class="ln">${start + i}</span>${hl(l)}`).join("\n")}</pre></div>`;
+  bindIds($("#dr-body"));
+  $("#drawer").hidden = false; $("#scrim").hidden = false; $("#dr-close").focus();
+}
+const closeDrawer = () => { $("#drawer").hidden = true; $("#scrim").hidden = true; };
+$("#dr-close").addEventListener("click", closeDrawer); $("#scrim").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+
+/* ── resume the last job after a reload ── */
+const last = store.get("tdl.job", null);
+if (last) fetch(`/api/jobs/${last}`).then((r) => r.ok ? r.json() : Promise.reject()).then((j) => {
+  if (!j.events.length) return;
+  replaying = true; j.events.forEach(handle); replaying = false;
+  if (!j.finished) { $("#go-btn").disabled = true; const seen = j.events.length; if (es) es.close(); es = new EventSource(`/api/jobs/${last}/events`); let n = 0; es.onmessage = (m) => { if (n++ >= seen) handle(JSON.parse(m.data)); }; es.addEventListener("end", () => es.close()); }
+  $("#url").value = j.events[0].url || "";
+}).catch(() => store.del("tdl.job"));
+})();
+</script>
+</body>
+</html>

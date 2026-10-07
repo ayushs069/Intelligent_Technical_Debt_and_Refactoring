@@ -1,0 +1,44 @@
+name: Tech Debt CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: pytest tests --tb=short -q --junitxml=reports/project_tests.xml
+      - name: Complexity report (Radon)
+        # Lists every block of rank C or worse; informative, does not fail the build.
+        run: radon cc analyzer enricher rag dataset llm agents evaluation refactoring -s -n C
+      - name: Lint check (Ruff)
+        run: ruff check --select E4,E7,E9,F analyzer enricher rag dataset llm agents evaluation refactoring dashboard run_*.py config.py
+      - name: Refresh report and audit
+        run: python run_pipeline.py --reports-only
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-evidence
+          path: reports/
+      - name: Validate Docker Compose
+        run: docker compose config --quiet
+      - name: Build and smoke test presentation container
+        run: |
+          docker compose up --build -d --wait --wait-timeout 180
+          curl --fail http://127.0.0.1:8501/_stcore/health
+      - name: Stop presentation container
+        if: always()
+        run: docker compose down

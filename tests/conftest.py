@@ -3,7 +3,6 @@ Shared pytest fixtures — creates temporary Python files with
 intentional code smells for testing the analyzers.
 """
 
-import os
 import textwrap
 
 import pytest

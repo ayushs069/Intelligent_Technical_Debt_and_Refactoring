@@ -55,7 +55,7 @@ def main() -> int:
         return 1
 
     print(f"\n{'='*60}")
-    print(f"  Technical Debt RAG Pipeline — Phase 3")
+    print("  Technical Debt RAG Pipeline — Phase 3")
     print(f"  Input Dataset : {input_path}")
     print(f"  Query         : {args.query}")
     print(f"{'='*60}\n")

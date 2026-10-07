@@ -39,7 +39,7 @@ def run_pytest_coverage(repo_path: str) -> bool:
         "-q", "--tb=no",
     ]
     try:
-        result = subprocess.run(
+        subprocess.run(
             cmd,
             cwd=repo_path,
             capture_output=True,
@@ -83,6 +83,10 @@ def build_coverage_map(repo_path: str) -> dict[str, float]:
     files_section = data.get("files", {})
     for filepath, stats in files_section.items():
         pct = stats.get("summary", {}).get("percent_covered", 0.0)
+        # coverage.json paths are relative to where pytest ran (repo_path),
+        # not to this process's cwd.
+        if not os.path.isabs(filepath):
+            filepath = os.path.join(repo_path, filepath)
         abs_path = os.path.normpath(os.path.abspath(filepath))
         coverage_map[abs_path] = round(pct, 1)
 

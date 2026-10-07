@@ -1,0 +1,9 @@
+{
+  "embedding_model": "all-MiniLM-L6-v2",
+  "store": "ChromaDB",
+  "queries": 70,
+  "neighbours_min": 5,
+  "neighbours_max": 5,
+  "self_matches": [],
+  "scope": "Structural retrieval diagnostics only; no human relevance labels have been collected."
+}

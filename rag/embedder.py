@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentence_transformers import SentenceTransformer
 
 
 def format_issue_document(issue: dict[str, Any]) -> str:
@@ -49,7 +48,7 @@ def format_issue_document(issue: dict[str, Any]) -> str:
         f"Message: {message}\n"
         f"Static Analysis Metrics: Complexity={complexity}, Maintainability Index={mi:.1f}, "
         f"LOC={loc}, Composite Debt Score={static_score:.2f}\n"
-        f"Repository Context: Callers={callers}, Recent Commits (90d)={recent_commits}, "
+        f"Repository Context: Callers={callers}, Recent Commits ({'2 years' if issue.get('tool') == 'aggregate' else '90d'})={recent_commits}, "
         f"Defect Commits={defect_commits}, Distinct Authors={commit_authors}, "
         f"Days Since Last Commit={last_modified_days}, Test Coverage={test_coverage:.1f}%"
     )
@@ -66,6 +65,8 @@ class IssueEmbedder:
     @property
     def model(self):
         if self._model is None:
+            from sentence_transformers import SentenceTransformer
+
             self._model = SentenceTransformer(self.model_name)
         return self._model
 

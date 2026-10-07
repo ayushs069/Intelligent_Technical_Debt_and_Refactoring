@@ -1,0 +1,61 @@
+{
+  "generated": "2026-10-07T17:20:43+00:00",
+  "methods": [
+    "static_score",
+    "complexity",
+    "context_heuristic"
+  ],
+  "excluded_experiments": [
+    "llm_rankings: 0/84 successful items; excluded from full-dataset comparison",
+    "llm_rankings_nocontext: 0/84 successful items; excluded from full-dataset comparison"
+  ],
+  "defects": {
+    "n_items": 84,
+    "n_positive": 7,
+    "methods": {
+      "static_score": {
+        "spearman_vs_fix_commits": 0.3331,
+        "spearman_vs_change_commits": 0.4231,
+        "auc_future_defect": 0.8516,
+        "ndcg@10_fix_commits": 0.4724,
+        "ndcg@10_change_commits": 0.6729,
+        "precision@5": 0.4,
+        "precision@10": 0.4,
+        "precision@20": 0.3,
+        "spearman_vs_change_commits_ci95": [
+          0.216,
+          0.6057
+        ]
+      },
+      "complexity": {
+        "spearman_vs_fix_commits": 0.3293,
+        "spearman_vs_change_commits": 0.5199,
+        "auc_future_defect": 0.8432,
+        "ndcg@10_fix_commits": 0.5276,
+        "ndcg@10_change_commits": 0.7438,
+        "precision@5": 0.6,
+        "precision@10": 0.4,
+        "precision@20": 0.25,
+        "spearman_vs_change_commits_ci95": [
+          0.3411,
+          0.662
+        ]
+      },
+      "context_heuristic": {
+        "spearman_vs_fix_commits": 0.3804,
+        "spearman_vs_change_commits": 0.4119,
+        "auc_future_defect": 0.8961,
+        "ndcg@10_fix_commits": 0.5463,
+        "ndcg@10_change_commits": 0.5122,
+        "precision@5": 0.6,
+        "precision@10": 0.3,
+        "precision@20": 0.3,
+        "spearman_vs_change_commits_ci95": [
+          0.2226,
+          0.5745
+        ]
+      }
+    }
+  },
+  "paired": []
+}

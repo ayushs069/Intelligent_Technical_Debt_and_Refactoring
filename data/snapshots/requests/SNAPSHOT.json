@@ -1,0 +1,6 @@
+{
+  "upstream": "https://github.com/psf/requests",
+  "commit": "72eccc8dd8b7c272e520f22b0256386c80864e94",
+  "as_of": "2024-01-01T00:00:00+00:00",
+  "purpose": "Portable source snapshot for dashboard and reproducible prompts; see LICENSE"
+}

@@ -83,7 +83,9 @@ def run(target_path: str) -> list[dict]:
         symbol = item.get("symbol", "")
         message_text = item.get("message", "")
         issues.append({
-            "file": item.get("path", ""),
+            # Pylint reports paths relative to its working directory; make them
+            # absolute so downstream matching does not depend on the caller's cwd.
+            "file": os.path.abspath(item["path"]) if item.get("path") else "",
             "function": item.get("obj", ""),
             "line": item.get("line", 0),
             "col": item.get("column", 0),

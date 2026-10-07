@@ -1,6 +1,5 @@
 """Tests for Phase 3 — RAG Pipeline (embedder, vector_store, retriever)."""
 
-import json
 from rag.embedder import IssueEmbedder, format_issue_document
 from rag.retriever import DebtRetriever
 from rag.vector_store import DebtVectorStore

@@ -1,0 +1,19 @@
+services:
+  dashboard:
+    build:
+      context: .
+      target: dashboard
+    ports:
+      - "127.0.0.1:8501:8501"
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/app/.streamlit:uid=10001,gid=10001
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - ./evaluation/expert_rankings:/app/evaluation/expert_rankings

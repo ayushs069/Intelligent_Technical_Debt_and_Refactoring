@@ -1,7 +1,5 @@
 """Tests for enricher.git_enricher module."""
 
-import os
-from unittest.mock import MagicMock, patch
 from enricher.git_enricher import build_file_context
 
 

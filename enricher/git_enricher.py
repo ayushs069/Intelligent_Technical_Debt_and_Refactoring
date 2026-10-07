@@ -10,7 +10,6 @@ For each file in the dataset it computes:
 
 from __future__ import annotations
 
-import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -28,7 +27,11 @@ def _days_ago(n: int) -> datetime:
     return datetime.now(tz=timezone.utc) - timedelta(days=n)
 
 
-def build_file_context(repo_path: str, lookback_days: int = 90) -> dict[str, dict]:
+def build_file_context(
+    repo_path: str,
+    lookback_days: int = 90,
+    as_of: Optional[datetime] = None,
+) -> dict[str, dict]:
     """
     Walk the git log of *repo_path* and return a mapping:
         relative_file_path -> {
@@ -37,6 +40,13 @@ def build_file_context(repo_path: str, lookback_days: int = 90) -> dict[str, dic
             commit_authors    : int,
             last_modified_days: int,
         }
+
+    *as_of* (timezone-aware) moves the reference point into the past: only
+    commits in ``[as_of - lookback_days, as_of]`` are considered and
+    ``last_modified_days`` is measured from *as_of*.  This lets the evaluation
+    build context from history *before* a cutoff without leaking later commits.
+    Defaults to "now".
+
     Returns an empty dict if the path is not a git repository.
     """
     repo = _open_repo(repo_path)
@@ -44,18 +54,24 @@ def build_file_context(repo_path: str, lookback_days: int = 90) -> dict[str, dic
         print("[git_enricher] Not a git repository — skipping git context.")
         return {}
 
-    since = _days_ago(lookback_days)
+    reference = as_of or datetime.now(tz=timezone.utc)
+    since = reference - timedelta(days=lookback_days)
     defect_keywords = {"fix", "bug", "error", "patch", "hotfix", "issue"}
 
     file_stats: dict[str, dict] = {}
 
     try:
         # Walk ALL commits in the lookback window
-        for commit in repo.iter_commits(since=since.isoformat()):
+        iter_kwargs = {"since": since.isoformat()}
+        if as_of is not None:
+            iter_kwargs["until"] = as_of.isoformat()
+        for commit in repo.iter_commits(**iter_kwargs):
             commit_dt = datetime.fromtimestamp(commit.committed_date, tz=timezone.utc)
+            if commit_dt > reference:
+                continue
             is_defect = any(kw in commit.message.lower() for kw in defect_keywords)
             author = str(commit.author.email or commit.author.name)
-            days_since = (datetime.now(tz=timezone.utc) - commit_dt).days
+            days_since = (reference - commit_dt).days
 
             for diff in commit.stats.files:
                 # diff is a relative path within the repo

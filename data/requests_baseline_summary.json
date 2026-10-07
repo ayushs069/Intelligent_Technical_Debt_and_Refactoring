@@ -1,0 +1,13 @@
+{
+  "snapshot_sha": "72eccc8dd8b7c272e520f22b0256386c80864e94",
+  "passed": 591,
+  "failed": 2,
+  "errors": 0,
+  "failed_ids": [
+    "tests.test_requests.TestRequests::test_HTTP_307_ALLOW_REDIRECT_POST_WITH_SEEKABLE",
+    "tests.test_requests.TestPreparingURLs::test_redirecting_to_bad_url[http://localhost:-1-InvalidURL]"
+  ],
+  "returncode": 1,
+  "report_valid": true,
+  "duration_s": 161.4
+}

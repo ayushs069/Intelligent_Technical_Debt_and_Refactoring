@@ -1,7 +1,6 @@
 """Tests for enricher.coverage_enricher module."""
 
 import json
-import os
 from enricher.coverage_enricher import build_coverage_map
 
 
